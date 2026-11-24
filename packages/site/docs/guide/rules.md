@@ -56,6 +56,20 @@ const r = data.rules
 - 一個 PR 只能新增或修改**你自己的**資料夾
 - 改到別人的投稿會被關閉；改到 `submissions/` 以外的檔案會被當成一般 PR，不會評測
 
+## 授權
+
+- 作品的**著作權屬於你**。想指定授權（例如 MIT、CC BY 4.0），在資料夾裡放一個 `LICENSE`（或 `LICENSE.md`、`LICENSE.txt`、`COPYING`）；網站會在你的作品上標示授權
+- 也可以在授權檔裡寫一行 `SPDX-License-Identifier: <授權代號>`，網站會直接採用這個名稱
+- 沒有附授權檔時，網站會標示「保留所有權利」
+
+::: warning 開 PR 投稿，就是授權給本活動使用
+只要開 Pull Request 投稿，就表示你同意授權本活動（交換聖誕樹及其主辦方），為了舉辦、展示、紀錄與推廣活動，**重製、執行、公開展示與散布**你的作品，並進行技術上必要的處理（例如編譯、在沙箱中執行、錄製動畫、擷取畫面）。
+
+這項授權是非專屬、免權利金、永久且不可撤銷的，**不影響**你以任何其他授權方式釋出自己的作品。你的 GitHub 帳號名稱、頭像與作品也會公開顯示在網站與交換公告中。
+:::
+
+完整條款見 repo 根目錄的 <a v-if="data.repo" :href="`https://github.com/${data.repo}/blob/main/SUBMISSION_LICENSE.md`">SUBMISSION_LICENSE.md</a><code v-else>SUBMISSION_LICENSE.md</code>。
+
 ## 行為準則
 
 請保持友善，作品內容不得包含歧視、騷擾或不當內容。違反者的投稿會被移除，並取消交換資格。

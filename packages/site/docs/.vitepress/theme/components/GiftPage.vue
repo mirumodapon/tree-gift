@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { IconArrowRight, IconGift } from '@tabler/icons-vue'
+import { IconArrowRight, IconGift, IconLicense } from '@tabler/icons-vue'
 import { computed } from 'vue'
 import { withBase } from 'vitepress'
 import { data } from '../../gift.data.ts'
@@ -20,7 +20,7 @@ const gift = computed(() => data.trees.find((t) => t.giftTo === props.user) ?? n
         來自
         <img :src="`https://github.com/${gift.user}.png?size=64`" alt="" width="24" height="24" />
         <a :href="`https://github.com/${gift.user}`">@{{ gift.user }}</a>
-        · {{ gift.languageName }}
+        · {{ gift.languageName }} · <IconLicense :size="14" /> {{ gift.license }}
       </p>
       <AnsiPlayer
         v-if="gift.animation"

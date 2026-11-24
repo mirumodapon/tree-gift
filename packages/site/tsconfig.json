@@ -3,5 +3,5 @@
   "compilerOptions": {
     "lib": ["es2024", "dom"]
   },
-  "include": ["docs/.vitepress/**/*.ts", "docs/**/*.paths.ts", "env.d.ts"]
+  "include": ["docs/.vitepress/**/*.ts", "docs/**/*.paths.ts", "env.d.ts", "tests"]
 }

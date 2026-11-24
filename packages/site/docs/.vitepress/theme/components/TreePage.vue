@@ -47,7 +47,8 @@ const tree = computed(() => data.trees.find((t) => t.user === props.user) ?? nul
           <template v-if="tree.animation">
             · <IconPlayerPlay :size="14" /> 動畫 {{ Math.round(tree.animation.duration) }} 秒
           </template>
-          · {{ tree.cols }} × {{ tree.rows }}
+          · {{ tree.cols }} × {{ tree.rows }} ·
+          <a class="license-link" href="#license"><IconLicense :size="14" /> {{ tree.license }}</a>
         </p>
       </div>
       <a class="github" :href="tree.folderUrl ?? `https://github.com/${tree.user}`">
@@ -95,8 +96,8 @@ const tree = computed(() => data.trees.find((t) => t.user === props.user) ?? nul
       </details>
     </section>
 
-    <section>
-      <h2><IconLicense :size="20" /> 授權</h2>
+    <section id="license">
+      <h2><IconLicense :size="20" /> 授權：{{ tree.license }}</h2>
       <template v-if="license">
         <p class="license-note">這份作品依作者附上的授權釋出：</p>
         <details class="file">
@@ -291,6 +292,17 @@ summary {
   background: var(--vp-c-brand-soft);
   color: var(--vp-c-brand-1);
   font-size: 12px;
+}
+
+.license-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: inherit;
+}
+
+.license-link:hover {
+  color: var(--vp-c-brand-1);
 }
 
 .license-note {

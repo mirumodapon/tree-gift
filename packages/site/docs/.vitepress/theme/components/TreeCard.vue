@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { IconArrowRight, IconGift, IconPlayerPlay } from '@tabler/icons-vue'
+import { IconArrowRight, IconGift, IconLicense, IconPlayerPlay } from '@tabler/icons-vue'
 import { withBase } from 'vitepress'
 import { ref } from 'vue'
 import type { Tree } from '../../gift.data.ts'
@@ -53,7 +53,12 @@ const player = ref<InstanceType<typeof AnsiPlayer>>()
         <IconGift :size="16" /> 送給 @{{ tree.giftTo }}
       </a>
       <span v-else class="size">{{ tree.cols }} × {{ tree.rows }}</span>
-      <span class="more">看作品 <IconArrowRight :size="16" /></span>
+      <span class="right">
+        <span class="license" :title="`授權：${tree.license}`">
+          <IconLicense :size="14" /> {{ tree.license }}
+        </span>
+        <span class="more">看作品 <IconArrowRight :size="16" /></span>
+      </span>
     </footer>
   </article>
 </template>
@@ -125,6 +130,25 @@ footer {
 .above {
   position: relative;
   z-index: 1;
+}
+
+.right {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.license {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 120px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--vp-c-text-3);
+  font-size: 12px;
 }
 
 .more {

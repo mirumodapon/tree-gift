@@ -14,7 +14,8 @@ import {
   type EventState,
 } from '@gift/judge'
 import { defineLoader } from 'vitepress'
-import { publishedResults, RESULTS_DIR } from './results.ts'
+import { licenseLabel } from './license.ts'
+import { publishedResults, RESULTS_DIR, submissionLicense } from './results.ts'
 
 export interface Tree {
   user: string
@@ -25,6 +26,8 @@ export interface Tree {
   animation: { duration: number; truncated: boolean; posterTime: number } | null
   cols: number
   rows: number
+  /** 作者的授權（例如 MIT、CC BY 4.0、保留所有權利） */
+  license: string
   /** GitHub 上的投稿資料夾（設定了 GITHUB_REPOSITORY 才有） */
   folderUrl: string | null
   /** 交換後：送給誰 */
@@ -93,6 +96,7 @@ function loadTrees(repo: string | null): { trees: Tree[]; exchanged: boolean } {
       animation: a
         ? { duration: a.duration, truncated: a.truncated, posterTime: a.posterTime }
         : null,
+      license: licenseLabel(submissionLicense(r.user)?.content ?? null),
       cols: r.stats.cols ?? 0,
       rows: r.stats.rows ?? 0,
       folderUrl: repo ? `https://github.com/${repo}/tree/main/submissions/${r.user}` : null,
