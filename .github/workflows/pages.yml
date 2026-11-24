@@ -1,0 +1,54 @@
+# 重新評測所有投稿並部署展示頁到 GitHub Pages。
+name: Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - submissions/**
+      - exchange.json
+      - rules.ts
+      - packages/**
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # 由 exchange.yml 呼叫時要拿到剛 commit 的 exchange.json
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node packages/tools/src/judge-all.ts --out out/results
+      - run: node packages/tools/src/build-site.ts --results out/results --out _site
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

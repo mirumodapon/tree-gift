@@ -1,0 +1,44 @@
+# 把 judge 結果留言到 PR 上。
+# workflow_run 一律跑預設分支上的 workflow 與程式碼，PR 改不到這裡；
+# artifact 視為不可信，作者與變更檔案由 pr-comment.ts 向 GitHub API 重新查詢。
+name: Judge Comment
+
+on:
+  workflow_run:
+    workflows: [Judge]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+
+jobs:
+  comment:
+    if: github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: judge-result
+          path: artifact
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - run: node packages/tools/src/pr-comment.ts
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ARTIFACT_DIR: artifact
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
