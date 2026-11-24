@@ -1,5 +1,6 @@
 // 跑 tests/cases 下所有案例（比對 expect 檔："ok" 或預期的 error code），
-// 案例可另外放 min-events（動畫至少錄到幾個事件）、max-seconds（最多花幾秒）做額外檢查，
+// 案例可另外放 min-events（動畫至少錄到幾個事件）、max-seconds（最多花幾秒）、
+// final-frame-starts（最後一格畫面的開頭）做額外檢查，
 // 以及 repo 根目錄 examples/ 下的各語言範例（一律預期通過）。
 // 用法：pnpm test [案例名稱...]
 //
@@ -17,7 +18,7 @@ interface Case {
   expect: string
 }
 
-const CHECK_FILES = ['expect', 'min-events', 'max-seconds']
+const CHECK_FILES = ['expect', 'min-events', 'max-seconds', 'final-frame-starts']
 
 function readNumber(dir: string, file: string): number | null {
   const p = path.join(dir, file)
@@ -36,6 +37,15 @@ function extraChecks(dir: string, res: JudgeResult, secs: number): string[] {
   const maxSeconds = readNumber(dir, 'max-seconds')
   if (maxSeconds !== null && secs > maxSeconds) {
     problems.push(`花了 ${secs.toFixed(1)} 秒，預期不超過 ${maxSeconds}`)
+  }
+  const framePath = path.join(dir, 'final-frame-starts')
+  if (fs.existsSync(framePath)) {
+    const want = fs.readFileSync(framePath, 'utf8')
+    if (!res.stdout?.startsWith(want)) {
+      problems.push(
+        `最後一格畫面開頭應為 ${JSON.stringify(want)}，實際為 ${JSON.stringify(res.stdout?.slice(0, 40))}`,
+      )
+    }
   }
   // 動畫作品的 stdout 必須是最後一格畫面（純文字），不能是原始串流
   if (res.animation && res.stdout?.includes('\x1b')) problems.push('動畫的 stdout 含有控制碼')

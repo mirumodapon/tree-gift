@@ -44,12 +44,16 @@ function findEntry(dir: string, rules: Rules, fail: Fail): string | null {
   return entries[0]!
 }
 
-/** 把收到的片段轉成動畫事件；用串流解碼，避免多位元組字元被切在兩個片段之間 */
+/**
+ * 把收到的片段轉成動畫事件；用串流解碼，避免多位元組字元被切在兩個片段之間。
+ * 錄製時關掉了 pty 的 onlcr（\n 不轉 \r\n，靜態作品才不會被當成動畫），
+ * 這裡補回轉換，終端模擬器重播時 \n 才會回到行首。
+ */
 function toEvents(run: ExecResult): CastEvent[] {
   const decoder = new TextDecoder('utf-8')
   const events: CastEvent[] = []
   for (const c of run.chunks) {
-    const data = decoder.decode(c.data, { stream: true })
+    const data = decoder.decode(c.data, { stream: true }).replaceAll('\n', '\r\n')
     if (!data) continue
     const time = Math.round(c.ms) / 1000
     const last = events.at(-1)
@@ -79,20 +83,25 @@ async function checkOutput(run: ExecResult, rules: Rules, res: JudgeResult, fail
   if (scan.motion) {
     // 動畫：在 maxCols × maxRows 的虛擬終端機重播，stdout 存最後一格畫面
     const events = toEvents(run)
-    const { finalFrame, posterTime, hasInk } = await replay(events, o.maxCols, o.maxRows)
+    const { finalFrame, posterTime, hasInk, viewCols, viewRows } = await replay(
+      events,
+      o.maxCols,
+      o.maxRows,
+    )
     if (!hasInk) {
       fail('empty_output', '動畫裡沒有出現任何東西')
       return
     }
     res.stdout = finalFrame
     res.animation = {
-      cast: toAsciicast(events, o.maxCols, o.maxRows),
+      // header 用驗證過的裁切大小，播放器照它模擬即可
+      cast: toAsciicast(events, viewCols, viewRows),
       duration: events.at(-1)?.time ?? 0,
       truncated: run.status === 'truncated',
       posterTime,
     }
-    res.stats.cols = o.maxCols
-    res.stats.rows = o.maxRows
+    res.stats.cols = viewCols
+    res.stats.rows = viewRows
     return
   }
 
