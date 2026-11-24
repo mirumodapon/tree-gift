@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { data } from '../.vitepress/gift.data.ts'
+import { data } from '../../.vitepress/gift.data.ts'
 </script>
 
 # 常見問題
@@ -34,7 +34,7 @@ import { data } from '../.vitepress/gift.data.ts'
 
 <template v-if="data.rules.animation">
 
-可以！用游標移動（例如 <code>\r</code> 或 <code>ESC[H</code>）重畫畫面就會被當成動畫，網站上會循環播放，最長錄 {{ data.rules.animationSeconds }} 秒。詳細規則見<a href="./rules.html#動畫">規則</a>。
+可以！用游標移動（例如 <code>\r</code> 或 <code>ESC[H</code>）重畫畫面就會被當成動畫，網站上會循環播放，最長錄 {{ data.rules.animationSeconds }} 秒。詳細規則見<a href="./rules.html#animation">規則</a>。
 
 PR 留言裡只會顯示動畫的最後一格，完整的動畫要等作品公開後到網站上看。
 

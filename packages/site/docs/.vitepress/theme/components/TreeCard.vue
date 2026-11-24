@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { IconArrowRight, IconGift, IconLicense } from '@tabler/icons-vue'
-import { withBase } from 'vitepress'
 import type { Tree } from '../../gift.data.ts'
+import { useI18n } from '../i18n.ts'
 
 defineProps<{ tree: Tree }>()
+const { t, link, licenseName } = useI18n()
 </script>
 
 <template>
@@ -18,13 +19,13 @@ defineProps<{ tree: Tree }>()
     />
     <div class="body">
       <!-- 整張卡片的點擊範圍由這個連結延伸（.card-link::after） -->
-      <a class="user card-link" :href="withBase(`/trees/${tree.user}.html`)">@{{ tree.user }}</a>
+      <a class="user card-link" :href="link(`/trees/${tree.user}.html`)">@{{ tree.user }}</a>
       <span class="meta">
-        <a v-if="tree.giftTo" class="above" :href="withBase(`/gifts/${tree.giftTo}.html`)">
-          <IconGift :size="14" /> 送給 @{{ tree.giftTo }}
+        <a v-if="tree.giftTo" class="above" :href="link(`/gifts/${tree.giftTo}.html`)">
+          <IconGift :size="14" /> {{ t.giftTo }} @{{ tree.giftTo }}
         </a>
-        <span class="license" :title="`授權：${tree.license}`">
-          <IconLicense :size="13" /> {{ tree.license }}
+        <span class="license" :title="t.licenseTitle(licenseName(tree.license))">
+          <IconLicense :size="13" /> {{ licenseName(tree.license) }}
         </span>
       </span>
     </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { data } from '../.vitepress/gift.data.ts'
+import { data } from '../../.vitepress/gift.data.ts'
 
 const r = data.rules
 </script>
@@ -16,7 +16,7 @@ const r = data.rules
 - 不能使用 <code>\t</code>、響鈴（<code>\a</code>）、超連結與設定標題（OSC）等其他控制碼
 - <template v-if="r.deterministic">每次執行的輸出必須<strong>完全相同</strong>（評測會跑兩次比對），所以不能用亂數或時間</template><template v-else>可以使用亂數，每次輸出不同也沒關係</template>
 
-## 動畫
+## 動畫 {#animation}
 
 <template v-if="r.animation">
 
@@ -62,7 +62,7 @@ const r = data.rules
 - 一個 PR 只能新增或修改**你自己的**資料夾
 - 改到別人的投稿會被關閉；改到 `submissions/` 以外的檔案會被當成一般 PR，不會評測
 
-## 授權
+## 授權 {#license}
 
 - 作品的**著作權屬於你**。想指定授權（例如 MIT、CC BY 4.0），在資料夾裡放一個 `LICENSE`（或 `LICENSE.md`、`LICENSE.txt`、`COPYING`）；網站會在你的作品上標示授權
 - 也可以在授權檔裡寫一行 `SPDX-License-Identifier: <授權代號>`，網站會直接採用這個名稱

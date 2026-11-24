@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { data } from '../../gift.data.ts'
+import { useI18n } from '../i18n.ts'
+
+const { t } = useI18n()
 </script>
 
 <template>
   <table>
     <thead>
       <tr>
-        <th>進入點檔名</th>
-        <th>語言</th>
-        <th>執行時間上限</th>
+        <th>{{ t.entryFile }}</th>
+        <th>{{ t.language }}</th>
+        <th>{{ t.runTimeout }}</th>
       </tr>
     </thead>
     <tbody>
@@ -17,7 +20,7 @@ import { data } from '../../gift.data.ts'
           <code>tree.{{ lang.ext }}</code>
         </td>
         <td>{{ lang.name }}</td>
-        <td>{{ lang.runTimeout }} 秒</td>
+        <td>{{ t.seconds(lang.runTimeout) }}</td>
       </tr>
     </tbody>
   </table>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { data } from '../.vitepress/gift.data.ts'
+import { data } from '../../.vitepress/gift.data.ts'
 
 const repoUrl = data.repo ? `https://github.com/${data.repo}` : null
 </script>
@@ -20,7 +20,7 @@ const repoUrl = data.repo ? `https://github.com/${data.repo}` : null
 2. 建立資料夾 `submissions/<你的 GitHub ID>/`（大小寫要完全一致）
 3. 在資料夾裡放入程式，進入點檔名為 `tree.<副檔名>`，其他檔案（模組、標頭檔、資料檔、`README.md`）放在同一層
 4. 在本機測試（選擇性，但很推薦）
-5. 開 **Pull Request**，機器人會自動評測（開 PR 即表示同意[投稿授權](#授權)）
+5. 開 **Pull Request**，機器人會自動評測（開 PR 即表示同意[投稿授權](#license)）
 6. **Watch** 這個 repo（Custom → 勾選 Issues），交換結果公告時才會收到通知
 
 ```
@@ -50,7 +50,7 @@ submissions/
 
 合併後想修改作品？再開一個 PR 修改自己的資料夾就好，一樣會重新評測。
 
-## 授權
+## 授權 {#license}
 
 - 作品的**著作權屬於你**。想指定授權（例如 MIT、CC BY 4.0），在資料夾裡放一個 `LICENSE`（或 `LICENSE.md`、`LICENSE.txt`、`COPYING`），會顯示在你的作品頁
 - 沒有附授權檔時，除了授權本活動使用之外，你保留所有權利

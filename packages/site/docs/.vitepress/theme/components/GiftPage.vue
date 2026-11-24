@@ -3,10 +3,12 @@ import { IconArrowRight, IconGift, IconLicense } from '@tabler/icons-vue'
 import { computed } from 'vue'
 import { withBase } from 'vitepress'
 import { data } from '../../gift.data.ts'
+import { useI18n } from '../i18n.ts'
 import AnsiPlayer from './AnsiPlayer.vue'
 
 const props = defineProps<{ user: string }>()
-const gift = computed(() => data.trees.find((t) => t.giftTo === props.user) ?? null)
+const { t, link, licenseName } = useI18n()
+const gift = computed(() => data.trees.find((x) => x.giftTo === props.user) ?? null)
 </script>
 
 <template>
@@ -14,13 +16,13 @@ const gift = computed(() => data.trees.find((t) => t.giftTo === props.user) ?? n
     <template v-if="gift">
       <h1>
         <IconGift class="title-icon" :size="32" :stroke="1.75" />
-        @{{ user }}，你收到了一棵聖誕樹！
+        {{ t.giftTitle(user) }}
       </h1>
       <p class="from">
-        來自
+        {{ t.giftFrom }}
         <img :src="`https://github.com/${gift.user}.png?size=64`" alt="" width="24" height="24" />
         <a :href="`https://github.com/${gift.user}`">@{{ gift.user }}</a>
-        · {{ gift.languageName }} · <IconLicense :size="14" /> {{ gift.license }}
+        · {{ gift.languageName }} · <IconLicense :size="14" /> {{ licenseName(gift.license) }}
       </p>
       <AnsiPlayer
         v-if="gift.animation"
@@ -35,14 +37,14 @@ const gift = computed(() => data.trees.find((t) => t.giftTo === props.user) ?? n
       />
       <pre v-else class="gift-term large" v-html="gift.html" />
       <p class="more">
-        <a :href="withBase(`/trees/${gift.user}.html`)">
-          看完整作品、原始碼與作者的話 <IconArrowRight :size="16" />
+        <a :href="link(`/trees/${gift.user}.html`)">
+          {{ t.giftMore }} <IconArrowRight :size="16" />
         </a>
       </p>
     </template>
     <template v-else>
-      <h1>找不到這份禮物</h1>
-      <p>可能還沒交換，或這份作品已經下架。</p>
+      <h1>{{ t.giftNotFound }}</h1>
+      <p>{{ t.giftNotFoundNote }}</p>
     </template>
   </div>
 </template>

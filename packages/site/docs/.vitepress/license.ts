@@ -1,10 +1,10 @@
 // 從投稿附上的授權檔辨識授權名稱，用來在網站上標示。
 // 優先採用 SPDX-License-Identifier；其次比對常見授權的特徵文字；都不符合就是「自訂授權」。
 
-/** 沒有附授權檔時的標示 */
-export const NO_LICENSE = '保留所有權利'
-/** 有授權檔但認不出來時的標示 */
-export const CUSTOM_LICENSE = '自訂授權'
+/** 沒有附授權檔；網站依語言顯示「保留所有權利」 */
+export const NO_LICENSE = '@none'
+/** 有授權檔但認不出來；網站依語言顯示「自訂授權」 */
+export const CUSTOM_LICENSE = '@custom'
 
 const SPDX_RE = /SPDX-License-Identifier:\s*([\w.+-]+)/i
 

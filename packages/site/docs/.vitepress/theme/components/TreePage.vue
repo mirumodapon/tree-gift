@@ -12,6 +12,7 @@ import { withBase } from 'vitepress'
 import { computed } from 'vue'
 import { data } from '../../gift.data.ts'
 import type { SourceFile } from '../../results.ts'
+import { useI18n } from '../i18n.ts'
 import AnsiPlayer from './AnsiPlayer.vue'
 
 const props = defineProps<{
@@ -23,14 +24,18 @@ const props = defineProps<{
   license: { name: string; content: string } | null
 }>()
 
+const { t, link, licenseName } = useI18n()
 const repoUrl = data.repo ? `https://github.com/${data.repo}` : null
 
-const tree = computed(() => data.trees.find((t) => t.user === props.user) ?? null)
+const tree = computed(() => data.trees.find((x) => x.user === props.user) ?? null)
+const copyright = computed(() => t.value.copyright(props.user))
 </script>
 
 <template>
   <article v-if="tree" class="tree-page">
-    <a class="back" :href="withBase('/gallery.html')"><IconArrowLeft :size="16" /> 作品牆</a>
+    <a v-if="data.publishTrees" class="back" :href="link('/gallery.html')">
+      <IconArrowLeft :size="16" /> {{ t.gallery }}
+    </a>
 
     <header>
       <img
@@ -45,10 +50,13 @@ const tree = computed(() => data.trees.find((t) => t.user === props.user) ?? nul
         <p class="meta">
           {{ tree.languageName }}
           <template v-if="tree.animation">
-            · <IconPlayerPlay :size="14" /> 動畫 {{ Math.round(tree.animation.duration) }} 秒
+            · <IconPlayerPlay :size="14" />
+            {{ t.animationSeconds(Math.round(tree.animation.duration)) }}
           </template>
           · {{ tree.cols }} × {{ tree.rows }} ·
-          <a class="license-link" href="#license"><IconLicense :size="14" /> {{ tree.license }}</a>
+          <a class="license-link" href="#license"
+            ><IconLicense :size="14" /> {{ licenseName(tree.license) }}</a
+          >
         </p>
       </div>
       <a class="github" :href="tree.folderUrl ?? `https://github.com/${tree.user}`">
@@ -72,34 +80,36 @@ const tree = computed(() => data.trees.find((t) => t.user === props.user) ?? nul
     <p v-if="tree.giftTo || tree.giftFrom" class="exchange">
       <IconGift :size="18" />
       <span v-if="tree.giftTo">
-        送給 <a :href="withBase(`/gifts/${tree.giftTo}.html`)">@{{ tree.giftTo }}</a>
+        {{ t.giftTo }} <a :href="link(`/gifts/${tree.giftTo}.html`)">@{{ tree.giftTo }}</a>
       </span>
       <span v-if="tree.giftTo && tree.giftFrom" class="sep">·</span>
       <span v-if="tree.giftFrom">
-        收到 <a :href="withBase(`/trees/${tree.giftFrom}.html`)">@{{ tree.giftFrom }}</a> 的樹
+        {{ t.receivedFrom[0] }}
+        <a :href="link(`/trees/${tree.giftFrom}.html`)">@{{ tree.giftFrom }}</a>
+        {{ t.receivedFrom[1] }}
       </span>
     </p>
 
     <section v-if="readmeHtml">
-      <h2><IconNotes :size="20" /> 作者的話</h2>
+      <h2><IconNotes :size="20" /> {{ t.authorNotes }}</h2>
       <div class="vp-doc readme" v-html="readmeHtml" />
     </section>
 
     <section v-if="files.length">
-      <h2><IconFileCode :size="20" /> 原始碼</h2>
+      <h2><IconFileCode :size="20" /> {{ t.sourceCode }}</h2>
       <details v-for="f in files" :key="f.name" class="file" :open="f.entry">
         <summary>
           <code>{{ f.name }}</code>
-          <span v-if="f.entry" class="tag">進入點</span>
+          <span v-if="f.entry" class="tag">{{ t.entry }}</span>
         </summary>
         <pre class="source"><code>{{ f.content }}</code></pre>
       </details>
     </section>
 
     <section id="license">
-      <h2><IconLicense :size="20" /> 授權：{{ tree.license }}</h2>
+      <h2><IconLicense :size="20" /> {{ t.licenseHeading(licenseName(tree.license)) }}</h2>
       <template v-if="license">
-        <p class="license-note">這份作品依作者附上的授權釋出：</p>
+        <p class="license-note">{{ t.licensedAs }}</p>
         <details class="file">
           <summary>
             <code>{{ license.name }}</code>
@@ -107,20 +117,21 @@ const tree = computed(() => data.trees.find((t) => t.user === props.user) ?? nul
           <pre class="source"><code>{{ license.content }}</code></pre>
         </details>
       </template>
-      <p v-else class="license-note">
-        作者沒有附上授權檔：除了授權本活動展示與使用之外，作者保留所有權利。
-      </p>
+      <p v-else class="license-note">{{ t.noLicenseNote }}</p>
       <p class="license-note">
-        著作權屬於作者 @{{ tree.user }}。詳見
-        <a v-if="repoUrl" :href="`${repoUrl}/blob/main/SUBMISSION_LICENSE.md`">投稿授權條款</a
-        ><span v-else>投稿授權條款</span>。
+        {{ copyright[0] }}
+        <a v-if="repoUrl" :href="`${repoUrl}/blob/main/SUBMISSION_LICENSE.md`">{{ copyright[1] }}</a
+        ><span v-else>{{ copyright[1] }}</span
+        >{{ copyright[2] }}
       </p>
     </section>
   </article>
 
   <div v-else class="tree-page">
-    <h1>找不到這份作品</h1>
-    <p><a :href="withBase('/gallery.html')">回到作品牆</a></p>
+    <h1>{{ t.treeNotFound }}</h1>
+    <p v-if="data.publishTrees">
+      <a :href="link('/gallery.html')">{{ t.backToGallery }}</a>
+    </p>
   </div>
 </template>
 

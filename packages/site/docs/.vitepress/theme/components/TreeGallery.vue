@@ -2,20 +2,23 @@
 import { IconPlant } from '@tabler/icons-vue'
 import { computed, ref } from 'vue'
 import { data } from '../../gift.data.ts'
+import { useI18n } from '../i18n.ts'
 import TreeCard from './TreeCard.vue'
 
-const languages = [...new Set(data.trees.map((t) => t.languageName))].toSorted()
+const { t } = useI18n()
+
+const languages = [...new Set(data.trees.map((x) => x.languageName))].toSorted()
 const selected = ref<string | null>(null)
 const trees = computed(() =>
-  selected.value ? data.trees.filter((t) => t.languageName === selected.value) : data.trees,
+  selected.value ? data.trees.filter((x) => x.languageName === selected.value) : data.trees,
 )
 </script>
 
 <template>
   <div class="gallery">
-    <div v-if="languages.length > 1" class="filters" role="group" aria-label="依語言篩選">
+    <div v-if="languages.length > 1" class="filters" role="group" :aria-label="t.filterByLanguage">
       <button :class="{ active: selected === null }" @click="selected = null">
-        全部 {{ data.trees.length }}
+        {{ t.all(data.trees.length) }}
       </button>
       <button
         v-for="lang in languages"
@@ -32,7 +35,7 @@ const trees = computed(() =>
     </div>
     <div v-else class="notice">
       <IconPlant class="notice-icon" :size="48" :stroke="1.5" />
-      <p>還沒有作品，成為第一棵樹吧！</p>
+      <p>{{ t.noTrees }}</p>
     </div>
   </div>
 </template>

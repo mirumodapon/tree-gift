@@ -1,18 +1,19 @@
 <script setup lang="ts">
 import { IconGift } from '@tabler/icons-vue'
 import { data } from '../../gift.data.ts'
-import { STATUS } from '../status.ts'
+import { useI18n } from '../i18n.ts'
+import { STATUS_TONE } from '../status.ts'
 
-const status = STATUS[data.state]
+const { t } = useI18n()
 </script>
 
 <template>
   <p class="event-status">
-    <span class="badge" :class="status.tone">{{ status.label }}</span>
+    <span class="badge" :class="STATUS_TONE[data.state]">{{ t.status[data.state] }}</span>
     <span v-if="data.submissionCount" class="count">
-      已有 <strong>{{ data.submissionCount }}</strong> 份投稿
+      {{ t.submissionCount(data.submissionCount) }}
     </span>
-    <span v-if="data.exchanged" class="count"><IconGift :size="16" /> 禮物已交換</span>
+    <span v-if="data.exchanged" class="count"><IconGift :size="16" /> {{ t.exchanged }}</span>
   </p>
 </template>
 
