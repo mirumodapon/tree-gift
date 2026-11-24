@@ -8,7 +8,7 @@
 1. Fork 這個 repo
 2. 建立資料夾 `submissions/<你的 GitHub ID>/`（大小寫要完全一致）
 3. 放入程式，進入點檔名為 `tree.<副檔名>`；其他檔案（模組、標頭檔、資料檔、`README.md`）放在同一層
-4. 開 Pull Request，等機器人留言回報 judge 結果 ✅
+4. 開 Pull Request，機器人會自動評測：通過就自動合併 🎁，沒通過會留言說明原因並關閉 PR（修正後再開一個新的 PR 即可）
 5. Watch 這個 repo（Custom → 勾選 Issues），交換結果公告時才會收到通知
 
 ```
@@ -55,7 +55,7 @@ submissions/
 - 輸出最多 **80 欄 × 50 行**（中文、emoji 算 2 欄），64 KB 以內
 - 可以用 ANSI 顏色（`ESC[...m`），但不能用游標移動、清畫面、`\r`、`\t` 等控制字元
 - 每次執行的輸出必須相同（不能用亂數）
-- PR 只能新增或修改你自己的 `submissions/<你的 ID>/`
+- PR 只能新增或修改你自己的 `submissions/<你的 ID>/`（改到別人的投稿會被關閉；改到 `submissions/` 以外的檔案則視為一般 PR，等主辦方 review，不會評測）
 
 ### 在本機測試
 
@@ -77,13 +77,22 @@ packages/
 rules.ts   所有規則與語言設定
 ```
 
-| Workflow       | 觸發                | 做什麼                                            |
-| -------------- | ------------------- | ------------------------------------------------- |
-| `judge.yml`    | PR                  | 在沙箱中評測 PR 作者的資料夾                      |
-| `comment.yml`  | judge 完成          | 檢查 PR 變更範圍並留言結果                        |
-| `pages.yml`    | push 到 main        | 重新評測所有投稿，部署展示頁                      |
-| `exchange.yml` | 手動                | 重新評測 → 配對 → commit `exchange.json` → 開公告 |
-| `ci.yml`       | 改到 judge 或工具時 | lint、format、typecheck、測試                     |
+| Workflow       | 觸發                | 做什麼                                                |
+| -------------- | ------------------- | ----------------------------------------------------- |
+| `review.yml`   | PR                  | 分類 PR；投稿 PR 在沙箱中評測，通過就 merge、否則關閉 |
+| `pages.yml`    | push 到 main / 手動 | 重新評測所有投稿，部署展示頁（自動 merge 後也會觸發） |
+| `exchange.yml` | 手動                | 重新評測 → 配對 → commit `exchange.json` → 開公告     |
+| `ci.yml`       | 改到 judge 或工具時 | lint、format、typecheck、測試                         |
+
+### PR 怎麼處理
+
+| PR 的變更                                    | 處理                                                  |
+| -------------------------------------------- | ----------------------------------------------------- |
+| 只改 `submissions/<作者>/`                   | 評測：通過 → 留言並 squash merge；未通過 → 留言並關閉 |
+| 改到別人的 `submissions/<其他人>/`           | 不評測，留言並關閉                                    |
+| 改到 `submissions/` 以外的任何檔案（含混合） | 一般功能性 PR：不評測、不留言，等 maintainer review   |
+| draft、bot、目標不是預設分支                 | 不處理                                                |
+| judge 本身出錯（例如 Docker 失敗）           | 留言，不 merge 也不關閉，等主辦方處理                 |
 
 ### 沙箱
 
@@ -92,22 +101,24 @@ rules.ts   所有規則與語言設定
 
 ### 安全設計
 
-- `judge.yml` 用 `pull_request` 觸發，token 唯讀、拿不到 secrets
-- `comment.yml` 跑預設分支的程式碼；artifact 視為不可信，PR 作者與變更檔案一律向 GitHub API 重新查詢
-- 有人在 PR 中改了 workflow，也只能偽造自己 PR 上的留言內容，而留言會標出 `submissions/` 以外的變更
-- `pages.yml` 與 `exchange.yml` 都會在 main 上重新評測，不採用 PR 時的結果
+`review.yml` 用 `pull_request_target` 觸發：workflow 與 judge 程式一律來自預設分支，PR 改不到；
+也不需要維護者按「Approve and run」，第一次貢獻的參加者也能全自動處理。分成兩個 job：
+
+- **judge**：token 唯讀。PR 的檔案用 `git archive` 當資料取出，只在無網路的 Docker 沙箱裡執行
+- **act**：有寫入權限，但不執行任何 PR 的程式；只負責留言、merge、關閉。merge 前會再向 API 確認變更範圍，
+  並指定 head sha，評測期間有新 commit 就不會 merge
+
+`pages.yml` 與 `exchange.yml` 都會在 main 上重新評測，不沿用 PR 當時的結果。
 
 ### 設定 repo
 
 1. **Settings → Pages**：Source 選 GitHub Actions
-2. **Settings → Actions → General → Fork pull request workflows**：
-   預設第一次貢獻的人開 PR 時，workflow 要等維護者按「Approve and run」才會跑。
-   參加者大多是第一次貢獻，人多時建議改成較寬鬆的選項（安全邊界在 Docker 沙箱與唯讀 token，不在這個核准）
-3. **Settings → Branches**：保護 `main`，要求 `Judge` check 通過才能 merge。
-   主辦方修改 `packages/`、`rules.ts` 等的 PR 沒有自己的投稿資料夾，`Judge` 一定會失敗（`no_folder`），
-   這類 PR 由管理員略過保護規則合併，品質由 `CI` workflow 把關
-4. （選填）**Settings → Variables**：設定 `SITE_URL` 覆寫展示頁網址
-5. 如果 `main` 禁止直接 push，請允許 GitHub Actions 推送，或改用 PR 合併 `exchange.json`
+2. **Settings → Branches**：保護 `main`，要求 `judge` check（Review workflow）通過才能 merge。
+   - 一般功能性 PR 的 `judge` 會直接通過（不評測），由 maintainer review 後手動合併
+   - **不要**開「Require approvals」：自動 merge 用的是 `GITHUB_TOKEN`，要求 review 會讓它無法合併
+   - **不要**開「Require branches to be up to date」：投稿 PR 之間互不衝突，開了反而會卡住
+3. （選填）**Settings → Variables**：設定 `SITE_URL` 覆寫展示頁網址
+4. 如果 `main` 禁止直接 push，請允許 GitHub Actions 推送，或改用 PR 合併 `exchange.json`
 
 ### 交換
 
