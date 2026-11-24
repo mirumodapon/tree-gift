@@ -5,10 +5,21 @@ export interface ChangedFile {
   previous_filename?: string
 }
 
-/** PR 只能動 submissions/<author>/ 底下的檔案；回傳違規的路徑（空陣列代表沒問題）。 */
-export function checkPaths(files: ChangedFile[], author: string): string[] {
-  const prefix = `submissions/${author}/`
-  return files
+export interface PathCheck {
+  /** submissions/ 以外的路徑；有任何一個就是一般功能性 PR，不進 judge */
+  outside: string[]
+  /** 其他人的 submissions/<other>/ 路徑；投稿 PR 不能動別人的作品 */
+  foreign: string[]
+}
+
+/** 依變更的路徑（含 rename 的來源）分類 PR。 */
+export function checkPaths(files: ChangedFile[], author: string): PathCheck {
+  const own = `submissions/${author}/`
+  const paths = files
     .flatMap((f) => [f.filename, f.previous_filename])
-    .filter((p): p is string => p !== undefined && !p.startsWith(prefix))
+    .filter((p): p is string => p !== undefined)
+  return {
+    outside: paths.filter((p) => !p.startsWith('submissions/')),
+    foreign: paths.filter((p) => p.startsWith('submissions/') && !p.startsWith(own)),
+  }
 }

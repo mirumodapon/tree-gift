@@ -1,33 +1,32 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import type { JudgeResult } from '@gift/judge'
+import type { ErrorCode, JudgeResult } from '@gift/judge'
 import { checkPaths } from '../src/check-paths.ts'
+import { decide, precheck, type DecideInput } from '../src/decide.ts'
 import { codeBlock, inlineCode, plain } from '../src/markdown.ts'
 import { pair } from '../src/pair.ts'
 import { COMMENT_MARKER, renderComment } from '../src/render-comment.ts'
 
 describe('checkPaths', () => {
-  it('允許作者自己的資料夾', () => {
+  it('只改自己的資料夾', () => {
     const files = [
       { filename: 'submissions/alice/tree.py', status: 'added' },
       { filename: 'submissions/alice/README.md', status: 'modified' },
     ]
-    assert.deepEqual(checkPaths(files, 'alice'), [])
+    assert.deepEqual(checkPaths(files, 'alice'), { outside: [], foreign: [] })
   })
 
-  it('擋下別人的資料夾、repo 檔案與 rename 來源', () => {
+  it('區分其他人的投稿與 submissions/ 以外的檔案（含 rename 來源）', () => {
     const files = [
       { filename: 'submissions/bob/tree.py', status: 'modified' },
-      { filename: '.github/workflows/judge.yml', status: 'modified' },
+      { filename: '.github/workflows/review.yml', status: 'modified' },
       { filename: 'submissions/alice/tree.py', status: 'renamed', previous_filename: 'rules.ts' },
       { filename: 'submissions/alice2/tree.py', status: 'added' },
     ]
-    assert.deepEqual(checkPaths(files, 'alice'), [
-      'submissions/bob/tree.py',
-      '.github/workflows/judge.yml',
-      'rules.ts',
-      'submissions/alice2/tree.py',
-    ])
+    assert.deepEqual(checkPaths(files, 'alice'), {
+      outside: ['.github/workflows/review.yml', 'rules.ts'],
+      foreign: ['submissions/bob/tree.py', 'submissions/alice2/tree.py'],
+    })
   })
 })
 
@@ -87,21 +86,100 @@ describe('renderComment', () => {
     stats: { cols: 3, rows: 2, bytes: 20, timeMs: 50 },
   }
 
-  it('通過時顯示去色的輸出預覽', () => {
-    const md = renderComment({ author: 'alice', badPaths: [], result })
+  it('merge 時顯示去色的輸出預覽', () => {
+    const md = renderComment({ action: 'merge', author: 'alice', foreign: [], result })
     assert.ok(md.startsWith(COMMENT_MARKER))
-    assert.match(md, /✅ 通過/)
+    assert.match(md, /已自動合併/)
     assert.match(md, /````\n\*\n```\n````/)
     assert.ok(!md.includes('\x1b'))
   })
 
-  it('改到別的檔案時判定未通過', () => {
-    const md = renderComment({ author: 'alice', badPaths: ['rules.ts'], result })
-    assert.match(md, /❌ 未通過/)
-    assert.match(md, /rules\.ts/)
+  it('改到別人的投稿時列出路徑與重新投稿方式', () => {
+    const md = renderComment({
+      action: 'reject',
+      author: 'alice',
+      foreign: ['submissions/bob/tree.py'],
+      result: null,
+    })
+    assert.match(md, /PR 已關閉/)
+    assert.match(md, /其他人的投稿/)
+    assert.match(md, /submissions\/bob\/tree\.py/)
+    assert.match(md, /新的 PR/)
+    assert.doesNotMatch(md, /找不到 judge 結果/)
   })
 
-  it('沒有結果時判定未通過', () => {
-    assert.match(renderComment({ author: 'alice', badPaths: [], result: null }), /❌ 未通過/)
+  it('error 時說明不是參加者的問題', () => {
+    const md = renderComment({ action: 'error', author: 'alice', foreign: [], result: null })
+    assert.match(md, /judge 發生錯誤/)
+    assert.match(md, /找不到 judge 結果/)
+  })
+})
+
+describe('decide', () => {
+  const ok: JudgeResult = {
+    user: 'alice',
+    ok: true,
+    language: 'py',
+    languageName: 'Python 3.13',
+    errors: [],
+    stdout: '*',
+    stderr: '',
+    stats: {},
+  }
+  const fail = (code: ErrorCode): JudgeResult => ({
+    ...ok,
+    ok: false,
+    errors: [{ code, message: '' }],
+  })
+  const base: DecideInput = {
+    draft: false,
+    targetsDefault: true,
+    userType: 'User',
+    paths: { outside: [], foreign: [] },
+    result: ok,
+  }
+
+  it('只改自己的投稿且通過 → merge', () => {
+    const d = decide(base)
+    assert.equal(d.action, 'merge')
+    assert.ok(d.pass)
+  })
+
+  it('只改自己的投稿但未通過 → reject', () => {
+    const d = decide({ ...base, result: fail('timeout') })
+    assert.equal(d.action, 'reject')
+    assert.ok(!d.pass)
+  })
+
+  it('改到別人的投稿 → 不評測直接 reject', () => {
+    const input = { ...base, paths: { outside: [], foreign: ['submissions/bob/tree.py'] } }
+    assert.equal(precheck(input)?.action, 'reject')
+    assert.equal(decide({ ...input, result: null }).action, 'reject')
+  })
+
+  it('改到 submissions/ 以外 → 一般 PR，不評測、check 綠燈、等 review', () => {
+    for (const paths of [
+      { outside: ['rules.ts'], foreign: [] },
+      { outside: ['README.md'], foreign: ['submissions/bob/tree.py'] },
+    ]) {
+      const d = precheck({ ...base, paths, result: null })
+      assert.equal(d?.action, 'skip')
+      assert.ok(d?.pass)
+    }
+  })
+
+  it('需要評測的投稿 PR，precheck 回傳 null', () => {
+    assert.equal(precheck({ ...base, result: null }), null)
+  })
+
+  it('judge 內部錯誤或沒有結果 → error，不關閉 PR', () => {
+    assert.equal(decide({ ...base, result: fail('internal_error') }).action, 'error')
+    assert.equal(decide({ ...base, result: null }).action, 'error')
+  })
+
+  it('draft、bot、非預設分支 → skip', () => {
+    assert.equal(decide({ ...base, draft: true }).action, 'skip')
+    assert.equal(decide({ ...base, userType: 'Bot' }).action, 'skip')
+    assert.equal(decide({ ...base, targetsDefault: false }).action, 'skip')
   })
 })

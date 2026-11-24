@@ -21,6 +21,7 @@ export class GitHub {
       body: body ? JSON.stringify(body) : undefined,
     })
     if (!res.ok) throw new Error(`${method} ${pathname} → ${res.status} ${await res.text()}`)
+    if (res.status === 204) return undefined as T
     return (await res.json()) as T
   }
 
@@ -34,4 +35,22 @@ export class GitHub {
       if (items.length < 100) return all
     }
   }
+}
+
+/** 「Get a pull request」API 回傳的欄位子集 */
+export interface PullRequest {
+  number: number
+  state: 'open' | 'closed'
+  draft: boolean
+  author_association: string
+  user: { login: string; type: string }
+  head: { sha: string }
+  base: { ref: string }
+}
+
+/** 讀取必要的環境變數 */
+export function env(name: string): string {
+  const v = process.env[name]
+  if (!v) throw new Error(`缺少環境變數 ${name}`)
+  return v
 }

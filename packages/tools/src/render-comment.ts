@@ -1,36 +1,47 @@
 import { ansi, type JudgeResult } from '@gift/judge'
+import type { Action } from './decide.ts'
 import { codeBlock, inlineCode, plain, truncate } from './markdown.ts'
 
 /** 用來找到並更新同一則留言 */
 export const COMMENT_MARKER = '<!-- gift-judge -->'
 
 export interface CommentInput {
+  action: Exclude<Action, 'skip'>
   author: string
-  /** 超出 submissions/<author>/ 的路徑 */
-  badPaths: string[]
-  /** judge 結果；artifact 遺失或不可信時為 null */
+  /** 改到的其他人投稿路徑 */
+  foreign: string[]
+  /** 沒有評測時為 null */
   result: JudgeResult | null
   runUrl?: string
 }
 
+const TITLES: Record<CommentInput['action'], string> = {
+  merge: '✅ 通過，已自動合併 🎁',
+  reject: '❌ 未通過，PR 已關閉',
+  error: '⚠️ judge 發生錯誤',
+}
+
+const FOOTERS: Record<CommentInput['action'], string> = {
+  merge: '感謝參加！截止後會隨機配對交換，記得 Watch 這個 repo 的 Issues 才收得到通知。',
+  reject: '請依上面的說明修正後，再開一個新的 PR（可以沿用同一個分支）。',
+  error: '這不是你的問題，主辦方會盡快處理。',
+}
+
 const num = (n: unknown) => (typeof n === 'number' ? String(n) : '-')
 
-export function renderComment({ author, badPaths, result, runUrl }: CommentInput): string {
-  const ok = badPaths.length === 0 && result?.ok === true
-  const out: string[] = [COMMENT_MARKER, `## 🎄 Judge 結果：${ok ? '✅ 通過' : '❌ 未通過'}`, '']
+export function renderComment({ action, author, foreign, result, runUrl }: CommentInput): string {
+  const out: string[] = [COMMENT_MARKER, `## 🎄 Judge 結果：${TITLES[action]}`, '']
 
-  if (badPaths.length) {
+  if (foreign.length) {
     out.push(
       `> [!WARNING]`,
-      `> 這個 PR 修改了 ${inlineCode(`submissions/${author}/`)} 以外的檔案，請移除這些變更：`,
-      ...badPaths.map((p) => `> - ${inlineCode(p)}`),
+      `> 這個 PR 改到了其他人的投稿。投稿 PR 只能新增或修改 ${inlineCode(`submissions/${author}/`)}，請移除這些變更：`,
+      ...foreign.map((p) => `> - ${inlineCode(p)}`),
       '',
     )
   }
 
-  if (!result) {
-    out.push('找不到 judge 結果，請查看 workflow 紀錄。', '')
-  } else {
+  if (result) {
     const s = result.stats
     out.push(
       '| 語言 | 尺寸 | 執行時間 |',
@@ -58,8 +69,11 @@ export function renderComment({ author, badPaths, result, runUrl }: CommentInput
         '',
       )
     }
+  } else if (!foreign.length) {
+    out.push('找不到 judge 結果。', '')
   }
 
-  if (runUrl) out.push(`<sub>[workflow 紀錄](${runUrl})</sub>`)
+  out.push(FOOTERS[action])
+  if (runUrl) out.push('', `<sub>[workflow 紀錄](${runUrl})</sub>`)
   return out.join('\n')
 }

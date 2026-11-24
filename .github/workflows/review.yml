@@ -1,0 +1,84 @@
+# 自動評測 PR：通過就 merge，未通過就留言並關閉。
+#
+# 用 pull_request_target 觸發：workflow 與 judge 程式一律來自預設分支，PR 改不到；
+# 也不需要維護者按「Approve and run」。安全上拆成兩個 job：
+#   judge  token 唯讀；PR 的檔案只當資料抓下來，在 Docker 沙箱（無網路）裡執行
+#   act    有寫入權限，但不執行任何 PR 的程式，只負責留言、merge、關閉
+name: Review
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions: {}
+
+concurrency:
+  group: review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  judge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      # pull_request_target 預設 checkout 預設分支，不是 PR 的內容
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Judge PR #${{ github.event.pull_request.number }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          OUT_DIR: out
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node packages/tools/src/review.ts
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: decision
+          path: out/decision.json
+          retention-days: 7
+
+  act:
+    needs: judge
+    # judge 未通過時 job 會失敗（PR check 紅燈），但仍要留言並關閉 PR
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: decision
+          path: decision
+
+      - name: Merge or close PR #${{ github.event.pull_request.number }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          DECISION_DIR: decision
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: node packages/tools/src/act.ts
