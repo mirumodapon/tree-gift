@@ -1,0 +1,71 @@
+/* 聖誕配色：綠色為主色，紅與金點綴 */
+:root {
+  --vp-c-brand-1: #18794e;
+  --vp-c-brand-2: #1e8c5b;
+  --vp-c-brand-3: #229a65;
+  --vp-c-brand-soft: rgba(24, 121, 78, 0.14);
+  --gift-red: #d64545;
+  --gift-gold: #b7791f;
+
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, var(--gift-red) 15%, var(--vp-c-brand-3));
+  --vp-home-hero-image-background-image: radial-gradient(
+    circle,
+    rgba(34, 154, 101, 0.35),
+    rgba(214, 69, 69, 0.2) 60%,
+    transparent 70%
+  );
+  --vp-home-hero-image-filter: blur(56px);
+
+  /* 終端機固定深色：參加者的 ANSI 顏色是為深色背景設計的 */
+  --gift-term-bg: #0b1020;
+  --gift-term-fg: #e5e5e5;
+}
+
+.dark {
+  --vp-c-brand-1: #3fbf7f;
+  --vp-c-brand-2: #34a96f;
+  --vp-c-brand-3: #2a9461;
+  --vp-c-brand-soft: rgba(63, 191, 127, 0.16);
+  --gift-red: #f06a6a;
+  --gift-gold: #e8b04a;
+}
+
+.gift-term {
+  margin: 0;
+  padding: 16px;
+  overflow-x: auto;
+  background: var(--gift-term-bg);
+  color: var(--gift-term-fg);
+  font-family: var(--vp-font-family-mono);
+  font-size: 14px;
+  line-height: 1.25;
+  border-radius: 12px;
+}
+
+/* Tabler icon：首頁特色與內文 */
+.VPFeature .icon {
+  color: var(--vp-c-brand-1);
+}
+
+.VPFeature .icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* VitePress 的基礎樣式把 svg 設成 block，內文的 icon 要改回 inline */
+.vp-doc .i {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  vertical-align: -3px;
+  color: var(--vp-c-text-2);
+}
+
+.vp-doc .i.ok {
+  color: var(--vp-c-brand-1);
+}
+
+.vp-doc .i.bad {
+  color: var(--gift-red);
+}

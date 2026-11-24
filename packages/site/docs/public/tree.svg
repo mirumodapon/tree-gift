@@ -1,0 +1,10 @@
+<!-- Tabler Icons: christmas-tree (MIT)，主視覺用漸層描邊 -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="url(#g)" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="聖誕樹">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e8463a"/>
+      <stop offset="1" stop-color="#229a65"/>
+    </linearGradient>
+  </defs>
+  <path d="M12 3l4 4l-2 1l4 4l-3 1l4 4h-14l4 -4l-3 -1l4 -4l-2 -1l4 -4"/><path d="M14 17v3a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1v-3"/>
+</svg>

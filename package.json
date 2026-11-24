@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "judge": "node packages/judge/src/cli.ts",
-    "site": "node packages/tools/src/judge-all.ts && node packages/site/src/build.ts",
+    "site": "node packages/tools/src/judge-all.ts && pnpm -F @gift/site build",
+    "site:dev": "pnpm -F @gift/site dev",
     "test": "pnpm -r test",
     "lint": "oxlint",
     "fmt": "oxfmt",

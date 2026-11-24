@@ -46,7 +46,7 @@ const pairs = pair(passed, values.seed)
 writeExchange({ seed: values.seed, createdAt: new Date().toISOString(), pairs })
 
 const site = values['site-url'].replace(/\/$/, '')
-const giftLink = (user: string) => (site ? `[打開禮物](${site}/u/${user}.html)` : '')
+const giftLink = (user: string) => (site ? `[打開禮物](${site}/gifts/${user}.html)` : '')
 const rows = pairs
   .toSorted((a, b) => a.to.localeCompare(b.to))
   .map((p) => `| ${p.to} | ${p.from} | ${giftLink(p.to)} |`)

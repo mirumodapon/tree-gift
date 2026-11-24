@@ -3,3 +3,6 @@ out/
 dist/
 _site/
 .DS_Store
+
+# VitePress
+packages/site/docs/.vitepress/cache/
