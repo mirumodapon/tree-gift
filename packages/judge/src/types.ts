@@ -24,6 +24,18 @@ export interface Rules {
     /** 是否要求兩次執行輸出相同 */
     deterministic: boolean
   }
+  /**
+   * ANSI 動畫：輸出含游標移動（\r、ESC[H 等）就視為動畫。
+   * 程式在 80×50（maxCols × maxRows）的虛擬終端機裡執行，錄下時間軸，網站上循環播放。
+   */
+  animation: {
+    /** 是否允許動畫；false 時游標移動等控制碼一律判 bad_control */
+    enabled: boolean
+    /** 動畫最長錄製秒數，到時間就截斷（不算失敗）；必須 >= 各語言的執行逾時 */
+    maxSeconds: number
+    /** 動畫的輸出上限（bytes）；超過代表畫面之間沒有延遲 */
+    maxBytes: number
+  }
   sandbox: {
     runTimeout: number
     compileTimeout: number
@@ -68,14 +80,30 @@ export interface JudgeError {
   message: string
 }
 
+export interface Animation {
+  /** asciicast v2（asciinema 的錄影格式），一行一個 JSON */
+  cast: string
+  /** 錄製長度（秒） */
+  duration: number
+  /** 是否因達到 maxSeconds 而截斷 */
+  truncated: boolean
+  /** 預覽用的畫面時間點（秒）：最後一格，若最後一格是空的則取內容最多的一格 */
+  posterTime: number
+}
+
 export interface JudgeResult {
   user: string
   ok: boolean
   language: string | null
   languageName: string | null
   errors: JudgeError[]
-  /** 第一次執行的 stdout（UTF-8 合法時才有） */
+  /**
+   * 第一次執行的輸出，只含文字與顏色（SGR）。
+   * 靜態作品是原始 stdout；動畫作品是虛擬終端機上的最後一格畫面（純文字）。
+   */
   stdout: string | null
+  /** 動畫作品才有 */
+  animation?: Animation | null
   stderr: string
   stats: { cols?: number; rows?: number; bytes?: number; timeMs?: number }
 }

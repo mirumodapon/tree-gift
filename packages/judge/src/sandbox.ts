@@ -7,10 +7,29 @@ export const STDERR_CAP = 8192
 /** 程序結束後，等待 pipe 收完剩餘輸出的時間 */
 const DRAIN_MS = 300
 
+export interface ExecOptions {
+  /** 在 pty（虛擬終端機）中執行：輸出不會被整塊緩衝，stderr 另存到 /tmp/.stderr */
+  tty?: { cols: number; rows: number }
+  /**
+   * 到 timeout 時若 when(目前的 stdout) 為 true，延長到 toSec 秒；
+   * 到時仍未結束就停止程式並回傳 truncated（動畫用）
+   */
+  extend?: { toSec: number; when: (stdout: Buffer) => boolean }
+}
+
+export interface Chunk {
+  /** 距離開始的毫秒數 */
+  ms: number
+  data: Buffer
+}
+
 export interface ExecResult {
-  status: 'ok' | 'timeout' | 'overflow'
+  /** truncated：動畫到達延長時限後被截斷，不算失敗 */
+  status: 'ok' | 'timeout' | 'overflow' | 'truncated'
   code: number | null
   stdout: Buffer
+  /** stdout 依收到的時間切成的片段（錄製動畫用） */
+  chunks: Chunk[]
   stderr: Buffer
   ms: number
 }
@@ -81,15 +100,25 @@ export class Sandbox {
     if (r.status !== 0) throw new Error(`docker run 失敗：${r.stderr || r.error?.message}`)
   }
 
-  exec(cmd: string, timeoutSec: number, cap: number): Promise<ExecResult> {
+  exec(cmd: string, timeoutSec: number, cap: number, opts: ExecOptions = {}): Promise<ExecResult> {
     return new Promise((resolve) => {
       // 指令結束後 kill -9 -1 清掉所有殘留的背景程序（不含 PID 1 與 shell 本身），
       // 否則它們佔著 stdout，docker exec 會一直等到逾時
-      const wrapped = `(${cmd}); ec=$?; kill -9 -1 2>/dev/null; exit $ec`
-      const p = spawn('docker', ['exec', this.name, 'sh', '-c', wrapped], {
-        stdio: ['ignore', 'pipe', 'pipe'],
-      })
+      let wrapped = `(${cmd}); ec=$?; kill -9 -1 2>/dev/null; exit $ec`
+      if (opts.tty) {
+        // pty 會把 stderr 併進輸出，另存檔案；-onlcr 避免 \n 被轉成 \r\n
+        const { cols, rows } = opts.tty
+        wrapped = `stty cols ${cols} rows ${rows} -onlcr 2>/dev/null; (${cmd}) 2>/tmp/.stderr; ec=$?; kill -9 -1 2>/dev/null; exit $ec`
+      }
+      const p = spawn(
+        'docker',
+        ['exec', ...(opts.tty ? ['-t'] : []), this.name, 'sh', '-c', wrapped],
+        {
+          stdio: ['ignore', 'pipe', 'pipe'],
+        },
+      )
       const out: Buffer[] = []
+      const chunks: Chunk[] = []
       const err: Buffer[] = []
       let outLen = 0
       let errLen = 0
@@ -110,11 +139,12 @@ export class Sandbox {
           code: exitCode,
           ms,
           stdout: Buffer.concat(out),
+          chunks,
           stderr: Buffer.concat(err),
         })
       }
 
-      const abort = (why: ExecResult['status']) => {
+      const abort = (why: 'timeout' | 'overflow') => {
         if (status !== 'ok' || done) return
         status = why
         ms = Date.now() - start
@@ -123,8 +153,22 @@ export class Sandbox {
         p.kill('SIGKILL')
       }
 
+      // 動畫截斷：只停掉 container 裡的程式，container 留著給第二次執行
+      const truncate = () => {
+        if (status !== 'ok' || done) return
+        status = 'truncated'
+        ms = Date.now() - start
+        this.stopProcesses()
+        timer = setTimeout(() => p.kill('SIGKILL'), 2000)
+      }
+
       p.stdout.on('data', (chunk: Buffer) => {
-        if (outLen <= cap) out.push(chunk.subarray(0, cap + 1 - outLen))
+        if (status !== 'ok') return
+        const part = chunk.subarray(0, Math.max(0, cap + 1 - outLen))
+        if (part.length) {
+          out.push(part)
+          chunks.push({ ms: Date.now() - start, data: part })
+        }
         outLen += chunk.length
         if (outLen > cap) abort('overflow')
       })
@@ -133,7 +177,14 @@ export class Sandbox {
         errLen += chunk.length
       })
 
-      const timer = setTimeout(() => abort('timeout'), timeoutSec * 1000)
+      let timer = setTimeout(() => {
+        const { extend } = opts
+        if (extend && extend.when(Buffer.concat(out))) {
+          timer = setTimeout(truncate, Math.max(0, extend.toSec - timeoutSec) * 1000)
+        } else {
+          abort('timeout')
+        }
+      }, timeoutSec * 1000)
       // 保險：docker exec 結束後若 pipe 遲遲不關，最多再等 DRAIN_MS
       p.on('exit', (code) => {
         exitCode = code
@@ -142,6 +193,21 @@ export class Sandbox {
       })
       p.on('close', finish)
     })
+  }
+
+  /** 停止 container 裡除了 PID 1 以外的所有程序 */
+  stopProcesses(): void {
+    spawnSync('docker', ['exec', this.name, 'sh', '-c', 'kill -9 -1'], { stdio: 'ignore' })
+  }
+
+  /** 讀取 tty 模式下另存的 stderr */
+  readStderr(): string {
+    const r = spawnSync(
+      'docker',
+      ['exec', this.name, 'sh', '-c', `head -c ${STDERR_CAP} /tmp/.stderr 2>/dev/null`],
+      { encoding: 'utf8' },
+    )
+    return r.status === 0 ? r.stdout : ''
   }
 
   /** 調整執行中 container 的記憶體上限（編譯完後降回執行用的限制） */

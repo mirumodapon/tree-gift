@@ -3,30 +3,91 @@
 import { eastAsianWidth } from 'get-east-asian-width'
 
 const SGR_SOURCE = String.raw`\x1b\[[0-9;]*m`
+const CSI_RE = new RegExp(String.raw`^\x1b\[([0-9;?]*)([@-~])`)
 const ZERO_WIDTH_RE = /[\p{Mn}\p{Me}\p{Cf}]/u
 
 export function stripSgr(text: string): string {
   return text.replace(new RegExp(SGR_SOURCE, 'g'), '')
 }
 
+export interface ControlScan {
+  /** 第一個不允許的控制序列說明；沒有則為 null */
+  bad: string | null
+  /** 是否含有游標移動等動畫用的序列（有就視為動畫作品） */
+  motion: boolean
+}
+
+/** 動畫允許的 CSI 結尾字元：游標移動（A–H、f）、清除（J、K）、儲存／還原游標（s、u） */
+const MOTION_CSI = new Set(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'f', 'J', 'K', 's', 'u'])
+/** 動畫允許的私有模式：隱藏／顯示游標（?25）、替代畫面（?1049） */
+const MOTION_PRIVATE = new Set(['?25h', '?25l', '?1049h', '?1049l'])
+
+const codePoint = (o: number) => `U+${o.toString(16).toUpperCase().padStart(4, '0')}`
+
 /**
- * 回傳第一個不允許的控制字元說明，沒有則回傳 null。
- * 只允許換行；顏色開啟時另外允許 SGR（ESC[...m）。
- * 游標移動、清畫面、\r、\t 等都會破壞展示頁，一律禁止。
+ * 逐一檢查輸出中的控制字元與 ANSI 序列。
+ *
+ * - 靜態：只允許換行與顏色（SGR，ESC[...m；allowColor 為 false 時也禁止）
+ * - 動畫：另外允許 \r、\b、游標移動、清除、儲存／還原游標、隱藏游標、替代畫面
+ * - 一律禁止：OSC（ESC ]，例如超連結）、DCS、終端機查詢與重設、\t、BEL 等其他控制字元
+ *
+ * allowMotion 為 false（rules.animation.enabled 關閉）時，動畫用的序列也視為不允許。
  */
-export function findBadControl(text: string, allowColor: boolean): string | null {
-  if (!allowColor && new RegExp(SGR_SOURCE).test(text)) {
-    return 'ANSI 顏色碼（本次規則不允許顏色）'
-  }
-  for (const ch of stripSgr(text)) {
+export function scanControls(text: string, allowColor: boolean, allowMotion = true): ControlScan {
+  let motion = false
+  const fail = (bad: string): ControlScan => ({ bad, motion })
+  const NO_MOTION = '游標移動、\\r 等動畫用的控制碼（本次規則不允許動畫）'
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]!
     const o = ch.codePointAt(0)!
     if (ch === '\n') continue
-    if (o < 0x20 || o === 0x7f || (o >= 0x80 && o <= 0x9f)) {
-      if (ch === '\x1b') return '非顏色的 ANSI 控制序列（例如游標移動、清畫面）'
-      return `控制字元 U+${o.toString(16).toUpperCase().padStart(4, '0')}`
+    if (ch === '\r' || ch === '\b') {
+      if (!allowMotion) return fail(NO_MOTION)
+      motion = true
+      continue
     }
+    if (ch !== '\x1b') {
+      if (o < 0x20 || o === 0x7f || (o >= 0x80 && o <= 0x9f))
+        return fail(`控制字元 ${codePoint(o)}`)
+      continue
+    }
+    const next = text[i + 1]
+    if (next === '7' || next === '8') {
+      // ESC 7 / ESC 8：儲存／還原游標
+      if (!allowMotion) return fail(NO_MOTION)
+      motion = true
+      i++
+      continue
+    }
+    if (next !== '[') {
+      if (next === ']') return fail('OSC 序列（ESC ]，例如超連結或設定標題）')
+      return fail(`不支援的 ESC 序列（ESC ${JSON.stringify(next ?? '')}）`)
+    }
+    // CSI：ESC [ 參數 結尾字元；不接受中間字元
+    const m = CSI_RE.exec(text.slice(i, i + 32))
+    if (!m) return fail('不完整或不支援的 CSI 序列')
+    const [seq, params, final] = m as unknown as [string, string, string]
+    i += seq.length - 1
+    if (final === 'm' && !params.includes('?')) {
+      if (!allowColor) return fail('ANSI 顏色碼（本次規則不允許顏色）')
+      continue
+    }
+    if (params.startsWith('?')) {
+      if (MOTION_PRIVATE.has(params + final)) {
+        if (!allowMotion) return fail(NO_MOTION)
+        motion = true
+        continue
+      }
+      return fail(`不支援的終端機模式 ESC[${params}${final}`)
+    }
+    if (MOTION_CSI.has(final) && !params.includes('?')) {
+      if (!allowMotion) return fail(NO_MOTION)
+      motion = true
+      continue
+    }
+    return fail(`不支援的 CSI 序列 ESC[${params}${final}`)
   }
-  return null
+  return { bad: null, motion }
 }
 
 export function charWidth(ch: string): number {

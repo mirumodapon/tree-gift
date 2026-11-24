@@ -12,6 +12,12 @@ export default {
     deterministic: true, // 是否要求兩次執行輸出相同（false 即允許隨機）
   },
 
+  animation: {
+    enabled: true, // 是否允許 ANSI 動畫
+    maxSeconds: 10, // 動畫最長錄製秒數，到時間就截斷，網站上循環播放（須 >= 各語言的執行逾時）
+    maxBytes: 1048576, // 動畫輸出上限；超過通常是畫面之間沒有延遲
+  },
+
   sandbox: {
     runTimeout: 5, // 執行逾時（秒）
     compileTimeout: 60, // 編譯逾時（秒）
