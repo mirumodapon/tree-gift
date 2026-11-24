@@ -43,7 +43,7 @@ export interface PullRequest {
   state: 'open' | 'closed'
   draft: boolean
   author_association: string
-  user: { login: string; type: string }
+  user: { login: string; type: string; id: number }
   head: { sha: string }
   base: { ref: string }
 }

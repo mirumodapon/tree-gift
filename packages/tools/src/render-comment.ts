@@ -10,6 +10,8 @@ export interface CommentInput {
   author: string
   /** 改到的其他人投稿路徑 */
   foreign: string[]
+  /** 投稿資料夾擁有者的問題 */
+  ownerProblem?: string | null
   /** 沒有評測時為 null */
   result: JudgeResult | null
   /** action 為 closed 時，用來說明是「還沒開始」還是「已結束」 */
@@ -33,7 +35,7 @@ const FOOTERS: Record<Exclude<CommentInput['action'], 'closed'>, string> = {
 const num = (n: unknown) => (typeof n === 'number' ? String(n) : '-')
 
 export function renderComment(input: CommentInput): string {
-  const { action, author, foreign, result, eventState = 'FATAL', runUrl } = input
+  const { action, author, foreign, ownerProblem, result, eventState = 'FATAL', runUrl } = input
   const out: string[] = [COMMENT_MARKER, `## 🎄 Judge 結果：${TITLES[action]}`, '']
 
   if (foreign.length) {
@@ -44,6 +46,8 @@ export function renderComment(input: CommentInput): string {
       '',
     )
   }
+
+  if (ownerProblem) out.push('> [!WARNING]', `> ${plain(ownerProblem)}`, '')
 
   if (result) {
     const s = result.stats
@@ -84,7 +88,7 @@ export function renderComment(input: CommentInput): string {
         '',
       )
     }
-  } else if (!foreign.length && action !== 'closed') {
+  } else if (!foreign.length && !ownerProblem && action !== 'closed') {
     out.push('找不到 judge 結果。', '')
   }
 

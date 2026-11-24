@@ -4,6 +4,12 @@ import { EVENT_POLICIES, parseEventState, type ErrorCode, type JudgeResult } fro
 import { checkPaths } from '../src/check-paths.ts'
 import { decide, precheck, type DecideInput } from '../src/decide.ts'
 import { codeBlock, inlineCode, plain } from '../src/markdown.ts'
+import {
+  mergeCommitMessage,
+  ownershipProblem,
+  parseAuthorIds,
+  type GitHubReader,
+} from '../src/ownership.ts'
 import { pair } from '../src/pair.ts'
 import { COMMENT_MARKER, renderComment } from '../src/render-comment.ts'
 
@@ -157,6 +163,7 @@ describe('decide', () => {
     targetsDefault: true,
     userType: 'User',
     paths: { outside: [], foreign: [] },
+    ownerProblem: null,
     result: ok,
   }
 
@@ -176,6 +183,13 @@ describe('decide', () => {
     const input = { ...base, paths: { outside: [], foreign: ['submissions/bob/tree.py'] } }
     assert.equal(precheck(input)?.action, 'reject')
     assert.equal(decide({ ...input, result: null }).action, 'reject')
+  })
+
+  it('資料夾擁有者不符 → 不評測直接 reject', () => {
+    const input = { ...base, ownerProblem: '先前是由另一個 GitHub 帳號投稿的', result: null }
+    const d = precheck(input)
+    assert.equal(d?.action, 'reject')
+    assert.match(d?.reason ?? '', /另一個 GitHub 帳號/)
   })
 
   it('改到 submissions/ 以外 → 一般 PR，不評測、check 綠燈、等 review', () => {
@@ -234,5 +248,55 @@ describe('EVENT_STATE', () => {
       assert.equal(parseEventState(v), 'FATAL')
     assert.equal(parseEventState(' progress_sync '), 'PROGRESS_SYNC')
     assert.equal(parseEventState('ended'), 'ENDED')
+  })
+})
+
+/** 假的 GitHub：submissions/ 底下的資料夾與每個資料夾的 commit 訊息 */
+const fakeGitHub = (folders: string[], commits: Record<string, string[]>): GitHubReader => ({
+  async request<T>(_method: string, pathname: string): Promise<T> {
+    assert.match(pathname, /^\/contents\/submissions\?ref=main$/)
+    return folders.map((name) => ({ name, type: 'dir' })) as T
+  },
+  async paginate<T>(pathname: string): Promise<T[]> {
+    const login = /path=submissions\/([^&]+)/.exec(pathname)![1]!
+    return (commits[login] ?? []).map((message) => ({ commit: { message } })) as T[]
+  },
+})
+
+describe('ownership', () => {
+  it('merge 訊息是固定內容並帶 user ID，解析得回來', () => {
+    const msg = mergeCommitMessage('alice', 42)
+    assert.doesNotMatch(msg, /Co-authored-by/i)
+    assert.deepEqual(parseAuthorIds(msg), [42])
+  })
+
+  it('只認獨立一行的 Gift-Author-Id', () => {
+    assert.deepEqual(parseAuthorIds('x Gift-Author-Id: 1\nGift-Author-Id: 2'), [2])
+  })
+
+  it('新投稿、或自己更新自己的作品 → 沒問題', async () => {
+    const gh = fakeGitHub(['bob'], { alice: [mergeCommitMessage('alice', 42)] })
+    assert.equal(await ownershipProblem(gh, 'main', 'carol', 7), null)
+    assert.equal(await ownershipProblem(gh, 'main', 'alice', 42), null)
+  })
+
+  it('改名後同名帳號被別人註冊 → 擋下', async () => {
+    const gh = fakeGitHub(['alice'], { alice: [mergeCommitMessage('alice', 42)] })
+    assert.match((await ownershipProblem(gh, 'main', 'alice', 99)) ?? '', /另一個 GitHub 帳號/)
+  })
+
+  it('大小寫不同的同名資料夾 → 擋下', async () => {
+    const gh = fakeGitHub(['Alice'], {})
+    assert.match((await ownershipProblem(gh, 'main', 'alice', 99)) ?? '', /大小寫不同/)
+  })
+
+  it('還沒有任何投稿（submissions/ 不存在）→ 沒問題', async () => {
+    const gh: GitHubReader = {
+      request: async () => {
+        throw new Error('GET /contents/submissions → 404 Not Found')
+      },
+      paginate: async <T>() => [] as T[],
+    }
+    assert.equal(await ownershipProblem(gh, 'main', 'alice', 1), null)
   })
 })

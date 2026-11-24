@@ -8,6 +8,7 @@ import path from 'node:path'
 import { checkPaths, type ChangedFile } from './check-paths.ts'
 import type { Decision } from './decide.ts'
 import { env, GitHub, type PullRequest } from './github.ts'
+import { mergeCommitMessage, ownershipProblem } from './ownership.ts'
 import { COMMENT_MARKER } from './render-comment.ts'
 
 interface DecisionFile extends Decision {
@@ -51,10 +52,14 @@ if (d.action === 'merge') {
   const { outside, foreign } = checkPaths(files, pr.user.login)
   const bad = [...outside, ...foreign]
   if (bad.length) throw new Error(`拒絕 merge：變更超出投稿資料夾 ${bad.join(', ')}`)
+  const owner = await ownershipProblem(gh, env('DEFAULT_BRANCH'), pr.user.login, pr.user.id)
+  if (owner) throw new Error(`拒絕 merge：${owner}`)
   await gh.request('PUT', `/pulls/${prNumber}/merge`, {
     merge_method: 'squash',
     sha: d.headSha,
     commit_title: `🎄 @${pr.user.login} 的聖誕樹 (#${prNumber})`,
+    // 固定內文並記錄 user ID：不沿用 PR 的 commit 訊息，偽造的 Co-authored-by 進不了 main
+    commit_message: mergeCommitMessage(pr.user.login, pr.user.id),
   })
   // GITHUB_TOKEN 的 merge 不會觸發 push 事件，主動更新展示頁
   await gh.request('POST', '/actions/workflows/pages.yml/dispatches', {

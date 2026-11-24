@@ -111,6 +111,11 @@ rules.ts   所有規則與語言設定
 - **judge**：token 唯讀。PR 的檔案用 `git archive` 當資料取出，只在無網路的 Docker 沙箱裡執行
 - **act**：有寫入權限，但不執行任何 PR 的程式；只負責留言、merge、關閉。merge 前會再向 API 確認變更範圍，
   並指定 head sha，評測期間有新 commit 就不會 merge
+- **投稿資料夾綁定 GitHub user ID**：bot merge 時在固定的 squash commit 內文寫入 `Gift-Author-Id: <id>`。
+  之後修改 `submissions/<login>/` 時，main 上該資料夾的 commit 紀錄裡若有別的 ID 就拒絕，
+  避免原作者改名後、名稱被別人註冊而接手作品；也會拒絕大小寫不同的同名資料夾（帳號不分大小寫，git 路徑分）。
+  合法改名的參加者需要主辦方手動搬移資料夾
+- **squash commit 內文固定**：不沿用 PR 裡任何 commit 的訊息，偽造的 `Co-authored-by` 不會進到 main
 
 `pages.yml` 與 `exchange.yml` 都會在 main 上重新評測，不沿用 PR 當時的結果。
 

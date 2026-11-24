@@ -22,6 +22,8 @@ export interface DecideInput {
   /** GitHub user.type，例如 'User' | 'Bot' */
   userType: string
   paths: PathCheck
+  /** 投稿資料夾擁有者的問題（見 ownership.ts）；沒有問題為 null */
+  ownerProblem: string | null
   /** 沒有評測時為 null */
   result: JudgeResult | null
 }
@@ -35,7 +37,7 @@ export interface Decision {
 
 /** 不需要評測就能決定的情況；回傳 null 代表這是要評測的投稿 PR。 */
 export function precheck(input: DecideInput): Decision | null {
-  const { eventState, draft, targetsDefault, userType, paths } = input
+  const { eventState, draft, targetsDefault, userType, paths, ownerProblem } = input
   if (paths.outside.length) {
     return {
       action: 'skip',
@@ -51,6 +53,7 @@ export function precheck(input: DecideInput): Decision | null {
     return { action: 'closed', pass: false, reason }
   }
   if (paths.foreign.length) return { action: 'reject', pass: false, reason: '修改了其他人的投稿' }
+  if (ownerProblem) return { action: 'reject', pass: false, reason: ownerProblem }
   return null
 }
 

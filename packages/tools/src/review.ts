@@ -16,6 +16,7 @@ import { checkPaths, type ChangedFile } from './check-paths.ts'
 import { decide, precheck, type DecideInput } from './decide.ts'
 import { fetchSubmission } from './fetch-submission.ts'
 import { env, GitHub, type PullRequest } from './github.ts'
+import { ownershipProblem } from './ownership.ts'
 import { renderComment } from './render-comment.ts'
 
 const token = env('GITHUB_TOKEN')
@@ -35,6 +36,10 @@ const input: DecideInput = {
   targetsDefault: pr.base.ref === repo.default_branch,
   userType: pr.user.type,
   paths,
+  // 只改投稿資料夾的 PR 才檢查擁有者（一般功能性 PR 不需要）
+  ownerProblem: paths.outside.length
+    ? null
+    : await ownershipProblem(gh, repo.default_branch, author, pr.user.id),
   result: null,
 }
 
@@ -57,6 +62,7 @@ const body =
         action: decision.action,
         author,
         foreign: paths.foreign,
+        ownerProblem: input.ownerProblem,
         result: input.result,
         eventState: input.eventState,
         runUrl: process.env.RUN_URL,
