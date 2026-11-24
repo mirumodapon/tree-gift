@@ -7,15 +7,17 @@
 
 1. Fork 這個 repo
 2. 建立資料夾 `submissions/<你的 GitHub ID>/`（大小寫要完全一致）
-3. 放入**一個**程式檔，檔名為 `tree.<副檔名>`（可另外放一個 `README.md` 介紹你的作品）
+3. 放入程式，進入點檔名為 `tree.<副檔名>`；其他檔案（模組、標頭檔、資料檔、`README.md`）放在同一層
 4. 開 Pull Request，等機器人留言回報 judge 結果 ✅
 5. Watch 這個 repo（Custom → 勾選 Issues），交換結果公告時才會收到通知
 
 ```
 submissions/
   your-github-id/
-    tree.py
-    README.md   ← 選填
+    tree.py      ← 進入點（必要）
+    star.py      ← 其他檔案（選填）
+    trunk.txt
+    README.md
 ```
 
 可以參考 [`examples/`](examples/) 裡各語言的範例。
@@ -32,13 +34,23 @@ submissions/
 | `tree.cpp`  | C++17 (G++ 14) |
 | `tree.go`   | Go 1.23        |
 | `tree.rs`   | Rust           |
-| `tree.java` | Java 21        |
+| `tree.java` | Java 25        |
+
+多檔案時：
+
+- C / C++：資料夾內所有 `*.c` / `*.cpp` 會一起編譯，`#include "xxx.h"` 可直接用
+- Go：所有 `*.go` 一起編譯（都要是 `package main`）
+- Rust：用 `mod xxx;` 引用同資料夾的 `xxx.rs`
+- Java：其他 class 放在同資料夾的 `<Class>.java`
+- Python / Node.js / Ruby / Shell：照一般方式 import / require 同資料夾的檔案
+- 工作目錄就是你的資料夾，可以直接用相對路徑讀檔（例如 `open("trunk.txt")`），但不能寫入
 
 想用其他語言？歡迎開 issue 討論。
 
 ### 規則
 
 - 只能使用標準函式庫，執行時**沒有網路**
+- 資料夾內只能平放一般檔案（不能有子資料夾或連結），最多 20 個檔案、總共 256 KB
 - 5 秒內執行完畢（Java 10 秒），結束代碼要是 0
 - 輸出最多 **80 欄 × 50 行**（中文、emoji 算 2 欄），64 KB 以內
 - 可以用 ANSI 顏色（`ESC[...m`），但不能用游標移動、清畫面、`\r`、`\t` 等控制字元

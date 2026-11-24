@@ -18,11 +18,13 @@ export default {
     memory: '256m',
     cpus: '1',
     pids: 128, // 防 fork bomb
-    maxSourceBytes: 65536,
+    maxFiles: 20, // 投稿資料夾最多幾個檔案
+    maxTotalBytes: 262144, // 投稿資料夾檔案總大小上限
   },
 
   // 副檔名 -> image / 編譯指令 / 執行指令
-  // 參加者的檔名必須是 tree.<副檔名>；原始碼掛載在 /src（唯讀），/tmp 可寫可執行。
+  // 進入點必須是 tree.<副檔名>，同資料夾可放其他檔案（模組、標頭檔、資料）。
+  // 投稿資料夾掛載在 /src（唯讀，也是工作目錄），/tmp 可寫可執行。
   languages: {
     py: { name: 'Python 3.13', image: 'python:3.13-slim', run: 'python3 /src/tree.py' },
     js: { name: 'Node.js 22', image: 'node:22-slim', run: 'node /src/tree.js' },
@@ -31,19 +33,19 @@ export default {
     c: {
       name: 'C (GCC 14)',
       image: 'gcc:14',
-      compile: 'gcc -O2 -o /tmp/tree /src/tree.c -lm',
+      compile: 'gcc -O2 -I/src -o /tmp/tree /src/*.c -lm',
       run: '/tmp/tree',
     },
     cpp: {
       name: 'C++17 (G++ 14)',
       image: 'gcc:14',
-      compile: 'g++ -O2 -std=c++17 -o /tmp/tree /src/tree.cpp',
+      compile: 'g++ -O2 -std=c++17 -I/src -o /tmp/tree /src/*.cpp',
       run: '/tmp/tree',
     },
     go: {
       name: 'Go 1.23',
       image: 'golang:1.23',
-      compile: 'cd /tmp && go build -o /tmp/tree /src/tree.go',
+      compile: 'cd /tmp && go build -o /tmp/tree /src/*.go',
       run: '/tmp/tree',
     },
     rs: {
@@ -53,10 +55,10 @@ export default {
       run: '/tmp/tree',
     },
     java: {
-      // 單檔啟動模式：class 名稱不限，第一個 top-level class 需含 main
+      // source launcher：第一個 top-level class 需含 main；其他 class 放在同資料夾的 <Class>.java
       // JVM 啟動 + 即時編譯較慢，給較長的執行時間
-      name: 'Java 21',
-      image: 'eclipse-temurin:21-jdk',
+      name: 'Java 25',
+      image: 'eclipse-temurin:25-jdk',
       run: 'java /src/tree.java',
       runTimeout: 10,
     },

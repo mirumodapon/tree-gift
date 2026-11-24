@@ -5,39 +5,42 @@ import { Sandbox, STDERR_CAP } from './sandbox.ts'
 import type { ErrorCode, JudgeResult, Rules } from './types.ts'
 
 export const LOGIN_RE = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/
-const ALLOWED_EXTRA = new Set(['README.md'])
-
 type Fail = (code: ErrorCode, message: string) => void
 
-function findSource(dir: string, rules: Rules, fail: Fail): string | null {
-  const sources: string[] = []
-  const extras: string[] = []
+/**
+ * 投稿格式：submissions/<user>/tree.<ext> 為進入點，其他檔案（模組、標頭檔、資料）放在同一層。
+ * 回傳進入點檔名，格式不符時回傳 null。
+ */
+function findEntry(dir: string, rules: Rules, fail: Fail): string | null {
+  const entries: string[] = []
+  const bad: string[] = []
+  let files = 0
+  let bytes = 0
   for (const name of fs.readdirSync(dir).toSorted()) {
-    if (ALLOWED_EXTRA.has(name)) continue
     const st = fs.lstatSync(path.join(dir, name))
+    if (!st.isFile()) {
+      bad.push(name)
+      continue
+    }
+    files++
+    bytes += st.size
     const m = /^tree\.([a-z]+)$/.exec(name)
-    if (st.isFile() && m && Object.hasOwn(rules.languages, m[1]!)) sources.push(name)
-    else extras.push(name)
+    if (m && Object.hasOwn(rules.languages, m[1]!)) entries.push(name)
   }
-  if (extras.length) {
-    fail('unexpected_file', `資料夾內只能有 tree.<副檔名> 與 README.md，發現：${extras.join(', ')}`)
-  }
-  if (!sources.length) {
+  const { maxFiles, maxTotalBytes } = rules.sandbox
+  if (bad.length) fail('unexpected_file', `只能放一般檔案，不能有子資料夾或連結：${bad.join(', ')}`)
+  if (files > maxFiles) fail('too_many_files', `共 ${files} 個檔案，上限 ${maxFiles}`)
+  if (bytes > maxTotalBytes) fail('too_large', `檔案總大小 ${bytes} bytes，上限 ${maxTotalBytes}`)
+  if (!entries.length) {
     const names = Object.keys(rules.languages).map((e) => `tree.${e}`)
-    fail('no_source', `找不到程式檔，檔名須為其中之一：${names.join(', ')}`)
+    fail('no_entry', `找不到進入點，檔名須為其中之一：${names.join(', ')}`)
     return null
   }
-  if (sources.length > 1) {
-    fail('multiple_sources', `只能有一個程式檔，發現：${sources.join(', ')}`)
+  if (entries.length > 1) {
+    fail('multiple_entries', `只能有一個進入點，發現：${entries.join(', ')}`)
     return null
   }
-  const src = sources[0]!
-  const limit = rules.sandbox.maxSourceBytes
-  if (fs.statSync(path.join(dir, src)).size > limit) {
-    fail('source_too_large', `程式檔超過 ${limit} bytes`)
-    return null
-  }
-  return src
+  return entries[0]!
 }
 
 function checkOutput(raw: Buffer, rules: Rules, res: JudgeResult, fail: Fail): void {
@@ -101,7 +104,7 @@ export async function judge(
     return finish()
   }
 
-  const src = findSource(dir, rules, fail)
+  const src = findEntry(dir, rules, fail)
   if (!src || res.errors.length) return finish()
 
   const ext = path.extname(src).slice(1)

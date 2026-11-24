@@ -1,0 +1,2 @@
+def star():
+    return "  *"

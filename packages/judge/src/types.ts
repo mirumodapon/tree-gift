@@ -30,7 +30,10 @@ export interface Rules {
     memory: string
     cpus: string
     pids: number
-    maxSourceBytes: number
+    /** 投稿資料夾最多幾個檔案 */
+    maxFiles: number
+    /** 投稿資料夾檔案總大小上限（bytes） */
+    maxTotalBytes: number
   }
   /** 副檔名 -> 語言設定；參加者的檔名必須是 tree.<副檔名> */
   languages: Record<string, Language>
@@ -40,9 +43,10 @@ export type ErrorCode =
   | 'bad_folder'
   | 'no_folder'
   | 'unexpected_file'
-  | 'no_source'
-  | 'multiple_sources'
-  | 'source_too_large'
+  | 'no_entry'
+  | 'multiple_entries'
+  | 'too_many_files'
+  | 'too_large'
   | 'compile_timeout'
   | 'compile_error'
   | 'timeout'
