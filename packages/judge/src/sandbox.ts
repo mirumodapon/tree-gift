@@ -72,7 +72,10 @@ export class Sandbox {
 
   exec(cmd: string, timeoutSec: number, cap: number): Promise<ExecResult> {
     return new Promise((resolve) => {
-      const p = spawn('docker', ['exec', this.name, 'sh', '-c', cmd], {
+      // 指令結束後 kill -9 -1 清掉所有殘留的背景程序（不含 PID 1 與 shell 本身），
+      // 否則它們佔著 stdout，docker exec 會一直等到逾時
+      const wrapped = `(${cmd}); ec=$?; kill -9 -1 2>/dev/null; exit $ec`
+      const p = spawn('docker', ['exec', this.name, 'sh', '-c', wrapped], {
         stdio: ['ignore', 'pipe', 'pipe'],
       })
       const out: Buffer[] = []
@@ -120,8 +123,7 @@ export class Sandbox {
       })
 
       const timer = setTimeout(() => abort('timeout'), timeoutSec * 1000)
-      // 用 exit 而非 close：程式留下的背景子程序可能一直佔著 pipe，
-      // 只等 close 會讓 judge 卡到逾時
+      // 保險：docker exec 結束後若 pipe 遲遲不關，最多再等 DRAIN_MS
       p.on('exit', (code) => {
         exitCode = code
         if (!ms) ms = Date.now() - start
