@@ -7,9 +7,9 @@
 //   其他模式                        → --seed，沒有就用 --fallback-seed（workflow 傳入目前的 commit sha）
 //
 // 產出：
-//   exchange.json            配對結果（commit 回 repo，展示頁會讀）
-//   <out-dir>/issue.md       公告 issue 內文
-//   <out-dir>/mentions-N.md  @ 通知（GitHub 單則內容 @ 太多人會不發通知，所以分批留言）
+//   exchange.json          配對結果（commit 回 repo，展示頁會讀）
+//   <out-dir>/issue.md     公告 issue 內文：交換通知與相關資訊，不列出誰送給誰
+//   <out-dir>/gift-N.md    每份禮物一則留言：@ 收到禮物的人並附上禮物頁連結（不透露送禮的人，打開才知道）
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -17,8 +17,6 @@ import { parseArgs } from 'node:util'
 import { currentEvent, loadRules, REPO_ROOT, writeExchange, type JudgeResult } from '@gift/judge'
 import { pair } from './pair.ts'
 import { deadlineSeed, deadlineSeedCommand } from './seed.ts'
-
-const MENTIONS_PER_COMMENT = 40
 
 const { values } = parseArgs({
   options: {
@@ -67,50 +65,70 @@ const pairs = passed.length >= 2 ? pair(passed, seed) : []
 writeExchange({ seed, createdAt: new Date().toISOString(), pairs })
 
 const site = values['site-url'].replace(/\/$/, '')
-const giftLink = (user: string) => (site ? `[打開禮物](${site}/gifts/${user}.html)` : '')
-const rows = pairs
-  .toSorted((a, b) => a.to.localeCompare(b.to))
-  .map((p) => `| ${p.to} | ${p.from} | ${giftLink(p.to)} |`)
 
 const seedNote = event.timed
   ? [
-      `<sub>配對 seed：\`${seed}\`，也就是截止時間 ${event.schedule!.end} 前 main 上最後一個 commit。`,
-      `可用 \`${deadlineSeedCommand(event.schedule!.end)}\` 確認 seed，再用 \`node packages/tools/src/exchange.ts --seed <seed>\` 重算驗證。</sub>`,
+      `配對 seed 是截止時間 ${event.schedule!.end} 前 \`main\` 上最後一個 commit：\`${seed}\``,
+      '',
+      '任何人都能重算驗證：',
+      '',
+      '```sh',
+      deadlineSeedCommand(event.schedule!.end) + '   # 找出 seed',
+      'pnpm judge --all',
+      `EVENT_STATE=TIME node packages/tools/src/exchange.ts --seed ${seed}`,
+      '```',
     ]
   : [
-      `<sub>配對 seed：\`${seed}\`。洗牌後排成一個環，每人送給下一位；`,
-      `可用 \`node packages/tools/src/exchange.ts --seed <seed>\` 重算驗證。</sub>`,
+      `配對 seed：\`${seed}\``,
+      '',
+      '任何人都能用同一個 seed 重算驗證：',
+      '',
+      '```sh',
+      'pnpm judge --all',
+      `node packages/tools/src/exchange.ts --seed ${seed}`,
+      '```',
     ]
 
 const issue = (
   pairs.length
     ? [
-        `共有 **${pairs.length}** 份聖誕樹完成交換 🎁`,
+        `🎄 聖誕樹交換開始囉！這次共有 **${pairs.length}** 位參加者完成交換。`,
         '',
-        site ? `🎄 展示頁：${site}` : '',
+        '接下來每一份送出的禮物，都會在這個 issue 底下發一則留言 @ 收到的人，GitHub 會通知你；點留言裡的連結就能打開你的禮物。',
         '',
-        '| 收到的人 | 來自 | |',
-        '| --- | --- | --- |',
-        ...rows,
+        site ? `🎁 活動網站：${site}` : '',
         '',
-        failed.length ? `有 ${failed.length} 份投稿未通過 judge，這次沒有參加交換。` : '',
+        failed.length ? `有 ${failed.length} 份投稿未通過評測，這次沒有參加交換。` : '',
+        '',
+        '### 怎麼配對的',
+        '',
+        '用公開的 seed 把所有通過評測的參加者洗牌後排成一個環，每個人把樹送給下一位，所以不會抽到自己。',
         '',
         ...seedNote,
       ]
     : [`通過評測的投稿只有 ${passed.length} 份，不到兩人，這次無法交換。`]
-).join('\n')
+)
+  .join('\n')
+  // 沒有的段落（例如沒有人未通過）會留下連續空行
+  .replace(/\n{3,}/g, '\n\n')
+
+const giftComment = (to: string) =>
+  site
+    ? `🎅 @${to} 你收到了一棵聖誕樹！\n\n👉 [打開禮物](${site}/gifts/${to}.html)`
+    : `🎅 @${to} 你收到了一棵聖誕樹！到活動網站的禮物頁打開它吧。`
 
 const outDir = values['out-dir']
 fs.mkdirSync(outDir, { recursive: true })
 fs.writeFileSync(path.join(outDir, 'issue.md'), issue + '\n')
-for (const old of fs.readdirSync(outDir).filter((f) => /^mentions-\d+\.md$/.test(f))) {
+for (const old of fs.readdirSync(outDir).filter((f) => /^gift-\d+\.md$/.test(f))) {
   fs.rmSync(path.join(outDir, old))
 }
+// 檔名補零，workflow 用 glob 依序發送
 const receivers = pairs.map((p) => p.to).toSorted()
-for (let i = 0; i < receivers.length; i += MENTIONS_PER_COMMENT) {
-  const chunk = receivers.slice(i, i + MENTIONS_PER_COMMENT)
-  const body = `🎅 禮物送到囉！${chunk.map((u) => `@${u}`).join(' ')}`
-  fs.writeFileSync(path.join(outDir, `mentions-${i / MENTIONS_PER_COMMENT + 1}.md`), body + '\n')
-}
+const width = String(receivers.length).length
+receivers.forEach((to, i) => {
+  const name = `gift-${String(i + 1).padStart(width, '0')}.md`
+  fs.writeFileSync(path.join(outDir, name), giftComment(to) + '\n')
+})
 
 console.log(`配對完成：${pairs.length} 人（未通過 ${failed.length} 人），seed=${seed}`)

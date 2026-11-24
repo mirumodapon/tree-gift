@@ -53,7 +53,7 @@ PR 留言裡只會顯示動畫的最後一格，完整的動畫要等作品公�
 
 <template v-if="data.schedule">截止後會自動交換：用<strong>截止時間前 <code>main</code> 分支上最後一個 commit 的 sha</strong> 當作 seed，把所有通過評測的參加者洗牌後排成一個環，每個人把樹送給下一位，所以<strong>不會抽到自己</strong>。任何人都能用 <code>git rev-list -1 --first-parent --before={{ data.schedule.end }} main</code> 找出這個 seed。</template><template v-else>截止後，主辦方用一個事先公告的公開 seed，把所有通過評測的參加者洗牌後排成一個環，每個人把樹送給下一位，所以<strong>不會抽到自己</strong>。</template>
 
-配對結果會公告在 repo 的 Issue，任何人都能用同一個 seed 重算驗證。記得 Watch repo 的 Issues 才收得到通知。
+交換時會在 repo 開一個公告 Issue，說明 seed 與驗證方式（不會列出誰送給誰），任何人都能用同一個 seed 重算驗證。之後每一份禮物都會在 Issue 底下發一則留言 @ 收到的人並附上禮物連結，所以不用 Watch 也會收到通知。
 
 ## 我的程式在本機可以跑，評測卻失敗？
 

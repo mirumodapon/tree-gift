@@ -9,7 +9,7 @@
 2. 建立資料夾 `submissions/<你的 GitHub ID>/`（大小寫要完全一致）
 3. 放入程式，進入點檔名為 `tree.<副檔名>`；其他檔案（模組、標頭檔、資料檔、`README.md`）放在同一層
 4. 開 Pull Request（即表示同意[投稿授權條款](SUBMISSION_LICENSE.md)），機器人會自動評測：通過就自動合併 🎁，沒通過會留言說明原因並關閉 PR（修正後再開一個新的 PR 即可）
-5. Watch 這個 repo（Custom → 勾選 Issues），交換結果公告時才會收到通知
+5. 等待交換：截止後會在公告 Issue 留言 @ 你，附上你的禮物連結
 
 ```
 submissions/

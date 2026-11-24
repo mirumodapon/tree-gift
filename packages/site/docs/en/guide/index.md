@@ -22,7 +22,7 @@ Write a program that prints a Christmas tree to stdout, and submit it through a 
 3. Put your program in the folder. The entry point must be named `tree.<extension>`; other files (modules, headers, data files, `README.md`) go in the same folder
 4. Test locally (optional, but highly recommended)
 5. Open a **Pull Request**, and the bot judges it automatically (opening a PR means you agree to the [submission license](#license))
-6. **Watch** this repo (Custom → check Issues) so you get notified when the exchange results are announced
+6. Wait for the exchange: after the deadline, a comment on the announcement Issue will @mention you with a link to your gift (to see the announcement itself, Watch the repo's Issues)
 
 ```
 submissions/

@@ -29,7 +29,7 @@ const TITLES: Record<CommentInput['action'], string> = {
 }
 
 const FOOTERS: Record<Exclude<CommentInput['action'], 'closed'>, string> = {
-  merge: '感謝參加！截止後會隨機配對交換，記得 Watch 這個 repo 的 Issues 才收得到通知。',
+  merge: '感謝參加！截止後會隨機配對交換，屆時會在公告 Issue 留言 @ 你並附上禮物連結。',
   reject: '請依上面的說明修正後，再開一個新的 PR（可以沿用同一個分支）。',
   error: '這不是你的問題，主辦方會盡快處理。',
 }

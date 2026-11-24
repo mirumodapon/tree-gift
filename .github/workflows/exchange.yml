@@ -62,8 +62,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          url=$(gh issue create --title "🎁 聖誕樹交換結果" --body-file out/issue.md)
-          for f in out/mentions-*.md; do gh issue comment "$url" --body-file "$f"; done
+          url=$(gh issue create --title "🎁 聖誕樹交換開始" --body-file out/issue.md)
+          # 每份禮物一則留言 @ 收到的人；間隔幾秒，避免觸發 GitHub 發文的速率限制
+          for f in out/gift-*.md; do
+            [ -e "$f" ] || continue
+            gh issue comment "$url" --body-file "$f"
+            sleep 3
+          done
 
   pages:
     needs: exchange

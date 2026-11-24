@@ -22,7 +22,7 @@ const repoUrl = data.repo ? `https://github.com/${data.repo}` : null
 3. 在資料夾裡放入程式，進入點檔名為 `tree.<副檔名>`，其他檔案（模組、標頭檔、資料檔、`README.md`）放在同一層
 4. 在本機測試（選擇性，但很推薦）
 5. 開 **Pull Request**，機器人會自動評測（開 PR 即表示同意[投稿授權](#license)）
-6. **Watch** 這個 repo（Custom → 勾選 Issues），交換結果公告時才會收到通知
+6. 等待交換：截止後會在 repo 的公告 Issue 留言 @ 你，附上你的禮物連結（想看到公告本身，可以 Watch 這個 repo 的 Issues）
 
 ```
 submissions/
