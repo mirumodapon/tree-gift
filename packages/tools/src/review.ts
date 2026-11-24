@@ -3,6 +3,7 @@
 //   只改 submissions/<author>/        → 評測，決定 merge 或 reject
 //   改到別人的 submissions/<other>/   → reject
 //   EVENT_STATE 不收件時              → 投稿 PR 一律不評測，留言說明並關閉
+//   啟用白名單且作者不在名單內        → 不評測，留言說明並關閉
 //   改到 submissions/ 以外的任何檔案  → 一般 PR，不評測，等 maintainer review
 // 產出 <OUT_DIR>/decision.json 交給 act job，exit code 決定 PR check 的紅綠燈。
 //
@@ -11,7 +12,7 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
-import { judge, loadRules, parseEventState, REPO_ROOT } from '@gift/judge'
+import { isAllowed, judge, loadRules, parseEventState, REPO_ROOT } from '@gift/judge'
 import { checkPaths, type ChangedFile } from './check-paths.ts'
 import { decide, precheck, type DecideInput } from './decide.ts'
 import { fetchSubmission } from './fetch-submission.ts'
@@ -28,6 +29,8 @@ const [pr, repo] = await Promise.all([
   gh.request<{ default_branch: string }>('GET', ''),
 ])
 const author = pr.user.login
+// rules.ts 來自預設分支（checkout 的是預設分支），PR 改不到白名單
+const rules = await loadRules()
 const files = await gh.paginate<ChangedFile>(`/pulls/${prNumber}/files`)
 const paths = checkPaths(files, author)
 const input: DecideInput = {
@@ -36,6 +39,7 @@ const input: DecideInput = {
   targetsDefault: pr.base.ref === repo.default_branch,
   userType: pr.user.type,
   paths,
+  allowed: isAllowed(rules, author),
   // 只改投稿資料夾的 PR 才檢查擁有者（一般功能性 PR 不需要）
   ownerProblem: paths.outside.length
     ? null
@@ -48,7 +52,7 @@ const input: DecideInput = {
 if (!precheck(input)) {
   try {
     const dir = fetchSubmission(REPO_ROOT, pr.head.sha, author, token)
-    input.result = await judge(dir, await loadRules(), author)
+    input.result = await judge(dir, rules, author)
   } catch (e) {
     console.error(e)
   }
@@ -62,6 +66,7 @@ const body =
         action: decision.action,
         author,
         foreign: paths.foreign,
+        notAllowed: !input.allowed,
         ownerProblem: input.ownerProblem,
         result: input.result,
         eventState: input.eventState,

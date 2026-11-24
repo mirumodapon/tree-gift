@@ -50,6 +50,15 @@ export interface Rules {
     /** 投稿資料夾檔案總大小上限（bytes） */
     maxTotalBytes: number
   }
+  /**
+   * 投稿白名單：enabled 為 true 時，只有 users 裡的 GitHub 帳號可以投稿（不分大小寫）。
+   * 名單外的投稿 PR 不評測直接關閉，也不會出現在作品牆與交換中。
+   */
+  allowlist: {
+    enabled: boolean
+    /** GitHub 帳號名稱（login） */
+    users: string[]
+  }
   /** 副檔名 -> 語言設定；參加者的檔名必須是 tree.<副檔名> */
   languages: Record<string, Language>
 }

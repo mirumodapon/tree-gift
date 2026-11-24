@@ -29,6 +29,13 @@ export default {
     maxTotalBytes: 262144, // 投稿資料夾檔案總大小上限
   },
 
+  // 投稿白名單：enabled 為 true 時，只有 users 裡的 GitHub 帳號可以投稿（不分大小寫）
+  // 名單外的投稿 PR 不評測直接關閉，judge-all 也會略過，不會出現在作品牆與交換中
+  allowlist: {
+    enabled: false,
+    users: [], // 例如 ['octocat', 'monalisa']
+  },
+
   // 副檔名 -> image / 編譯指令 / 執行指令
   // 進入點必須是 tree.<副檔名>，同資料夾可放其他檔案（模組、標頭檔、資料）。
   // 投稿資料夾掛載在 /src（唯讀，也是工作目錄），/tmp 可寫可執行。

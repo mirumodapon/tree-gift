@@ -1,4 +1,5 @@
 // 評測 submissions/ 底下所有投稿，每人一個 <out>/<user>.json。
+// 啟用白名單時略過名單外的資料夾（不評測、不產生結果），作品牆與交換都不會有它們。
 // 用法：node packages/tools/src/judge-all.ts [--out out/results] [--concurrency 1]
 //
 // 預設逐一執行：同時跑時，惡意投稿（fork bomb 等）會拖慢其他投稿造成誤判逾時，
@@ -7,7 +8,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
-import { judge, loadRules, REPO_ROOT } from '@gift/judge'
+import { isAllowed, judge, loadRules, REPO_ROOT } from '@gift/judge'
 
 const { values } = parseArgs({
   options: {
@@ -18,11 +19,15 @@ const { values } = parseArgs({
 
 const rules = await loadRules()
 const subRoot = path.join(REPO_ROOT, 'submissions')
-const users = fs
+const folders = fs
   .readdirSync(subRoot, { withFileTypes: true })
   .filter((d) => d.isDirectory())
   .map((d) => d.name)
   .toSorted()
+const users = folders.filter((u) => isAllowed(rules, u))
+for (const skipped of folders.filter((u) => !users.includes(u))) {
+  console.log(`⏭️  ${skipped} 不在白名單內，略過`)
+}
 
 fs.rmSync(values.out, { recursive: true, force: true })
 fs.mkdirSync(values.out, { recursive: true })

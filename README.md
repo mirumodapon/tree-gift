@@ -57,6 +57,7 @@ submissions/
 - 可以做 **ANSI 動畫**：用 `\r`、游標移動（`ESC[H` 等）、清畫面重畫。程式在 `maxCols × maxRows`（預設 80×50）的終端機裡執行，最長錄製秒數由 `rules.ts` 的 `animation.maxSeconds` 決定（預設 10 秒，可無限循環，時間到就截斷），網站上會循環播放；動畫須在該語言的執行時間上限內開始。範例見 `examples/animation`，實際數值以活動網站的規則頁為準
 - 不能用 `\t`、響鈴、超連結／設定標題（OSC）等其他控制碼
 - 每次執行的輸出必須相同（不能用亂數）
+- 主辦方可以在 `rules.ts` 啟用投稿白名單，啟用時只有名單內的帳號可以投稿
 - PR 只能新增或修改你自己的 `submissions/<你的 ID>/`（改到別人的投稿會被關閉；改到 `submissions/` 以外的檔案則視為一般 PR，等主辦方 review，不會評測）
 
 ### 在本機測試
@@ -93,6 +94,7 @@ rules.ts   所有規則與語言設定
 | PR 的變更                                    | 處理                                                  |
 | -------------------------------------------- | ----------------------------------------------------- |
 | 不收件時（見下方 `EVENT_STATE`）的投稿 PR    | 不評測，留言說明活動尚未開始或已結束，並關閉          |
+| 白名單已啟用，但作者不在名單內               | 不評測，留言說明並關閉                                |
 | 只改 `submissions/<作者>/`                   | 評測：通過 → 留言並 squash merge；未通過 → 留言並關閉 |
 | 改到別人的 `submissions/<其他人>/`           | 不評測，留言並關閉                                    |
 | 改到 `submissions/` 以外的任何檔案（含混合） | 一般功能性 PR：不評測、不留言，等 maintainer review   |
@@ -131,6 +133,22 @@ rules.ts   所有規則與語言設定
    - `EVENT_STATE`：活動狀態，見下方「活動狀態」
    - `SITE_URL`（選填）：自訂網域時設定，交換公告裡「打開禮物」的連結會用它
 4. 如果 `main` 禁止直接 push，請允許 GitHub Actions 推送，或改用 PR 合併 `exchange.json`
+
+### 投稿白名單
+
+只想讓特定的人參加時，在 `rules.ts` 啟用白名單並列出 GitHub 帳號名稱（不分大小寫）：
+
+```ts
+allowlist: {
+  enabled: true,
+  users: ['octocat', 'monalisa'],
+},
+```
+
+- 名單外的投稿 PR 不評測，留言說明並關閉；merge 前也會再檢查一次
+- `judge-all` 會略過名單外已經在 `submissions/` 裡的資料夾，所以它們不會出現在作品牆，也不會參加交換
+- 名單比對的是帳號名稱：參加者改名後要更新名單（資料夾也需要主辦方手動搬移）
+- 改完 push 到 `main` 即生效；從名單移除的人已合併的作品，要重新部署網站後才會從作品牆消失
 
 ### 活動狀態
 
@@ -172,7 +190,7 @@ pnpm fmt     # 格式化
 
 TypeScript 直接由 Node.js 執行（type stripping），不需要 build。
 
-調整規則請改 `rules.ts`（包含是否允許動畫 `animation.enabled`、動畫長度上限 `animation.maxSeconds`）；新增語言只需加一筆 image 與指令，再到 `examples/` 加一個範例並確認能通過。
+調整規則請改 `rules.ts`（包含是否允許動畫 `animation.enabled`、動畫長度上限 `animation.maxSeconds`、投稿白名單 `allowlist`）；新增語言只需加一筆 image 與指令，再到 `examples/` 加一個範例並確認能通過。
 
 ## 授權
 

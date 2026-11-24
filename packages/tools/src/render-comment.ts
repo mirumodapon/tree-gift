@@ -10,6 +10,8 @@ export interface CommentInput {
   author: string
   /** 改到的其他人投稿路徑 */
   foreign: string[]
+  /** 作者不在投稿白名單內 */
+  notAllowed?: boolean
   /** 投稿資料夾擁有者的問題 */
   ownerProblem?: string | null
   /** 沒有評測時為 null */
@@ -35,8 +37,25 @@ const FOOTERS: Record<Exclude<CommentInput['action'], 'closed'>, string> = {
 const num = (n: unknown) => (typeof n === 'number' ? String(n) : '-')
 
 export function renderComment(input: CommentInput): string {
-  const { action, author, foreign, ownerProblem, result, eventState = 'FATAL', runUrl } = input
+  const {
+    action,
+    author,
+    foreign,
+    notAllowed,
+    ownerProblem,
+    result,
+    eventState = 'FATAL',
+    runUrl,
+  } = input
   const out: string[] = [COMMENT_MARKER, `## 🎄 Judge 結果：${TITLES[action]}`, '']
+
+  if (notAllowed) {
+    out.push(
+      '> [!WARNING]',
+      '> 這次活動只開放白名單內的帳號投稿，你的帳號不在名單中。如果你應該在名單內，請聯絡主辦方。',
+      '',
+    )
+  }
 
   if (foreign.length) {
     out.push(
@@ -88,11 +107,12 @@ export function renderComment(input: CommentInput): string {
         '',
       )
     }
-  } else if (!foreign.length && !ownerProblem && action !== 'closed') {
+  } else if (!foreign.length && !notAllowed && !ownerProblem && action !== 'closed') {
     out.push('找不到 judge 結果。', '')
   }
 
-  out.push(action === 'closed' ? closedMessage(eventState) : FOOTERS[action])
+  if (action === 'closed') out.push(closedMessage(eventState))
+  else if (!notAllowed) out.push(FOOTERS[action])
   if (runUrl) out.push('', `<sub>[workflow 紀錄](${runUrl})</sub>`)
   return out.join('\n')
 }

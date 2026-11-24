@@ -141,6 +141,20 @@ describe('renderComment', () => {
   })
 })
 
+describe('renderComment（白名單）', () => {
+  it('不在白名單內時說明原因，不叫人修正後重開 PR', () => {
+    const md = renderComment({
+      action: 'reject',
+      author: 'mallory',
+      foreign: [],
+      notAllowed: true,
+      result: null,
+    })
+    assert.match(md, /白名單/)
+    assert.doesNotMatch(md, /找不到 judge 結果|再開一個新的 PR/)
+  })
+})
+
 describe('decide', () => {
   const ok: JudgeResult = {
     user: 'alice',
@@ -163,9 +177,22 @@ describe('decide', () => {
     targetsDefault: true,
     userType: 'User',
     paths: { outside: [], foreign: [] },
+    allowed: true,
     ownerProblem: null,
     result: ok,
   }
+
+  it('不在白名單內 → 不評測直接 reject；收件期外仍是 closed、一般 PR 仍是 skip', () => {
+    const notAllowed = { ...base, allowed: false, result: null }
+    assert.deepEqual(precheck(notAllowed), {
+      action: 'reject',
+      pass: false,
+      reason: '不在投稿白名單內',
+    })
+    assert.equal(decide({ ...notAllowed, eventState: 'ENDED' }).action, 'closed')
+    const paths = { outside: ['README.md'], foreign: [] }
+    assert.equal(decide({ ...notAllowed, paths }).action, 'skip')
+  })
 
   it('只改自己的投稿且通過 → merge', () => {
     const d = decide(base)

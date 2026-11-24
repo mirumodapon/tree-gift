@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { LOGIN_RE } from './judge.ts'
 import type { Rules } from './types.ts'
 
 export const REPO_ROOT = path.resolve(import.meta.dirname, '../../..')
@@ -22,7 +23,23 @@ export async function loadRules(file = path.join(REPO_ROOT, 'rules.ts')): Promis
   return mod.default
 }
 
-function validateRules(rules: Rules): void {
+/** login 能不能投稿：白名單未啟用時一律可以；啟用時須在名單內（不分大小寫）。 */
+export function isAllowed(rules: Rules, login: string): boolean {
+  const { enabled, users } = rules.allowlist
+  return !enabled || users.some((u) => u.toLowerCase() === login.toLowerCase())
+}
+
+export function validateRules(rules: Rules): void {
+  const seen = new Set<string>()
+  for (const user of rules.allowlist.users) {
+    if (!LOGIN_RE.test(user)) {
+      throw new Error(`rules.ts：allowlist.users 的 ${JSON.stringify(user)} 不是合法的 GitHub 帳號`)
+    }
+    if (seen.has(user.toLowerCase())) {
+      throw new Error(`rules.ts：allowlist.users 重複列出 ${user}（不分大小寫）`)
+    }
+    seen.add(user.toLowerCase())
+  }
   if (!rules.animation.enabled) return
   for (const [ext, lang] of Object.entries(rules.languages)) {
     const timeout = lang.runTimeout ?? rules.sandbox.runTimeout

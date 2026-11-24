@@ -5,6 +5,7 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
+import { isAllowed, loadRules } from '@gift/judge'
 import { checkPaths, type ChangedFile } from './check-paths.ts'
 import type { Decision } from './decide.ts'
 import { env, GitHub, type PullRequest } from './github.ts'
@@ -52,6 +53,9 @@ if (d.action === 'merge') {
   const { outside, foreign } = checkPaths(files, pr.user.login)
   const bad = [...outside, ...foreign]
   if (bad.length) throw new Error(`拒絕 merge：變更超出投稿資料夾 ${bad.join(', ')}`)
+  if (!isAllowed(await loadRules(), pr.user.login)) {
+    throw new Error(`拒絕 merge：@${pr.user.login} 不在投稿白名單內`)
+  }
   const owner = await ownershipProblem(gh, env('DEFAULT_BRANCH'), pr.user.login, pr.user.id)
   if (owner) throw new Error(`拒絕 merge：${owner}`)
   await gh.request('PUT', `/pulls/${prNumber}/merge`, {

@@ -8,10 +8,12 @@ import path from 'node:path'
 import {
   ansi,
   currentEvent,
+  isAllowed,
   loadRules,
   readExchange,
   REPO_ROOT,
   type EventState,
+  type Rules,
 } from '@gift/judge'
 import { defineLoader } from 'vitepress'
 import { licenseLabel } from './license.ts'
@@ -62,6 +64,8 @@ export interface GiftData {
     memory: string
     maxFiles: number
     maxTotalKB: number
+    /** 是否只開放白名單內的帳號投稿 */
+    allowlist: boolean
   }
   languages: LanguageInfo[]
   /** 公開時才有內容 */
@@ -74,12 +78,14 @@ export { data }
 
 const SUBMISSIONS = path.join(REPO_ROOT, 'submissions')
 
-function submissionUsers(): string[] {
+/** 投稿資料夾；啟用白名單時只算名單內的 */
+function submissionUsers(rules: Rules): string[] {
   if (!fs.existsSync(SUBMISSIONS)) return []
   return fs
     .readdirSync(SUBMISSIONS, { withFileTypes: true })
     .filter((d) => d.isDirectory())
     .map((d) => d.name)
+    .filter((u) => isAllowed(rules, u))
 }
 
 function loadTrees(repo: string | null): { trees: Tree[]; exchanged: boolean } {
@@ -122,7 +128,7 @@ export default defineLoader({
       acceptSubmissions: policy.acceptSubmissions,
       publishTrees: policy.publishTrees,
       repo,
-      submissionCount: submissionUsers().length,
+      submissionCount: submissionUsers(rules).length,
       rules: {
         animation: rules.animation.enabled,
         animationSeconds: rules.animation.maxSeconds,
@@ -135,6 +141,7 @@ export default defineLoader({
         memory: rules.sandbox.memory,
         maxFiles: rules.sandbox.maxFiles,
         maxTotalKB: Math.round(rules.sandbox.maxTotalBytes / 1024),
+        allowlist: rules.allowlist.enabled,
       },
       languages: Object.entries(rules.languages).map(([ext, lang]) => ({
         ext,

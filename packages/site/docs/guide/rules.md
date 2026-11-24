@@ -53,6 +53,12 @@ const r = data.rules
 
 ## Pull Request
 
+<template v-if="r.allowlist">
+
+- 這次活動只開放**白名單內的帳號**投稿，名單外的 PR 不會評測，會直接關閉
+
+</template>
+
 - 一個 PR 只能新增或修改**你自己的**資料夾
 - 改到別人的投稿會被關閉；改到 `submissions/` 以外的檔案會被當成一般 PR，不會評測
 
