@@ -12,6 +12,7 @@ const repoUrl = data.repo ? `https://github.com/${data.repo}` : null
 <template v-if="data.acceptSubmissions">現在<strong>收件中</strong>，歡迎投稿！</template>
 <template v-else-if="data.state === 'NOT_STARTED'">活動<strong>還沒開始</strong>，可以先看看規則、在本機寫好程式，開始收件後再開 PR。</template>
 <template v-else>活動<strong>已經結束</strong>，謝謝大家的參與！</template>
+<template v-if="data.schedule"><br>收件時間：<EventTime :iso="data.schedule.start" /> ～ <EventTime :iso="data.schedule.end" />，截止後會自動交換。</template>
 :::
 
 ## 步驟

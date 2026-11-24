@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { EVENT_POLICIES, parseEventState, type ErrorCode, type JudgeResult } from '@gift/judge'
+import {
+  currentEvent,
+  EVENT_POLICIES,
+  parseEventMode,
+  type ErrorCode,
+  type JudgeResult,
+} from '@gift/judge'
 import { checkPaths } from '../src/check-paths.ts'
 import { decide, precheck, type DecideInput } from '../src/decide.ts'
 import { codeBlock, inlineCode, plain } from '../src/markdown.ts'
@@ -261,6 +267,8 @@ describe('decide', () => {
   })
 })
 
+const at = (iso: string) => Date.parse(iso)
+
 describe('EVENT_STATE', () => {
   it('五種狀態對應收件與公開', () => {
     assert.deepEqual(EVENT_POLICIES.NOT_STARTED, { acceptSubmissions: false, publishTrees: false })
@@ -272,9 +280,35 @@ describe('EVENT_STATE', () => {
 
   it('未定義或不認得的值視為 FATAL，大小寫與空白不影響', () => {
     for (const v of [undefined, '', 'progress-sync', 'OPEN'])
-      assert.equal(parseEventState(v), 'FATAL')
-    assert.equal(parseEventState(' progress_sync '), 'PROGRESS_SYNC')
-    assert.equal(parseEventState('ended'), 'ENDED')
+      assert.equal(parseEventMode(v), 'FATAL')
+    assert.equal(parseEventMode(' progress_sync '), 'PROGRESS_SYNC')
+    assert.equal(parseEventMode('ended'), 'ENDED')
+    assert.equal(parseEventMode('time_sync'), 'TIME_SYNC')
+  })
+
+  const schedule = { start: '2026-12-01T00:00:00+08:00', end: '2026-12-24T23:59:59+08:00' }
+
+  it('TIME 依 schedule 切換：開始前、收件中、截止後', () => {
+    assert.equal(
+      currentEvent(schedule, 'TIME', at('2026-11-30T23:59:59+08:00')).state,
+      'NOT_STARTED',
+    )
+    assert.equal(currentEvent(schedule, 'TIME', at('2026-12-01T00:00:00+08:00')).state, 'PROGRESS')
+    assert.equal(currentEvent(schedule, 'TIME', at('2026-12-24T23:59:58+08:00')).state, 'PROGRESS')
+    assert.equal(currentEvent(schedule, 'TIME', at('2026-12-24T23:59:59+08:00')).state, 'ENDED')
+    assert.equal(
+      currentEvent(schedule, 'TIME_SYNC', at('2026-12-10T12:00:00Z')).state,
+      'PROGRESS_SYNC',
+    )
+    assert.equal(currentEvent(schedule, 'TIME_SYNC', at('2027-01-01T00:00:00Z')).state, 'ENDED')
+  })
+
+  it('TIME 沒有 schedule 視為 FATAL；其他模式不看時間', () => {
+    assert.equal(currentEvent(null, 'TIME').state, 'FATAL')
+    const e = currentEvent(schedule, 'PROGRESS', at('2030-01-01T00:00:00Z'))
+    assert.equal(e.state, 'PROGRESS')
+    assert.equal(e.timed, false)
+    assert.equal(e.schedule, null)
   })
 })
 

@@ -1,7 +1,9 @@
+import fs from 'node:fs'
 import path from 'node:path'
-import { currentEvent, REPO_ROOT } from '@gift/judge'
+import { REPO_ROOT } from '@gift/judge'
 import { defineConfig, type DefaultTheme, type LocaleSpecificConfig } from 'vitepress'
 import { castsDevServer, writeCasts } from './casts.ts'
+import { siteEvent } from './event.ts'
 import { FALLBACK_LOCALE, isLocale, LOCALES, type Locale } from './locales.ts'
 import { MESSAGES } from './theme/messages.ts'
 
@@ -11,7 +13,10 @@ const repo = process.env.GITHUB_REPOSITORY
 const base = process.env.SITE_BASE ?? '/'
 
 // 不公開作品（EVENT_STATE）時整個作品牆都不出現：不產生頁面、導覽列與首頁也不放連結
-const { publishTrees } = currentEvent().policy
+// TIME 模式下整個 build 都用同一個時間點判斷狀態（見 event.ts）；dev server 用啟動時的時間
+process.env.EVENT_NOW ??= new Date().toISOString()
+const event = await siteEvent()
+const { publishTrees } = event.policy
 
 /** config 才用到的介面文字（導覽列、側邊欄與 VitePress 內建介面） */
 interface SiteText {
@@ -199,7 +204,15 @@ export default defineConfig({
 
   // 動畫作品的 /casts/<user>.cast（不公開作品時不會產生）
   vite: { plugins: [castsDevServer()] },
-  buildEnd: (site) => writeCasts(site.outDir),
+  buildEnd: async (site) => {
+    await writeCasts(site.outDir)
+    // 部署出去的狀態；schedule.yml 用它判斷 TIME 模式跨過開始或截止時間後要不要重新部署
+    fs.writeFileSync(
+      path.join(site.outDir, 'event.json'),
+      JSON.stringify({ mode: event.mode, state: event.state, builtAt: process.env.EVENT_NOW }) +
+        '\n',
+    )
+  },
   // 動態路由的頁面標題；不公開作品時拿掉首頁的作品牆按鈕
   transformPageData(page) {
     const hero = page.frontmatter.hero

@@ -51,7 +51,7 @@ Judging runs in a real terminal (pty), so buffering behaves just like in your te
 
 ## How does the exchange pair people? Can I get my own tree?
 
-After the deadline, the organizers take a public seed announced in advance, shuffle everyone who passed judging, and arrange them in a ring. Each person gives their tree to the next one, so **you never get your own tree**.
+<template v-if="data.schedule">Trees are exchanged automatically after the deadline. The seed is <strong>the sha of the last commit on the <code>main</code> branch before the deadline</strong>: everyone who passed judging is shuffled with it and arranged in a ring, and each person gives their tree to the next one, so <strong>you never get your own tree</strong>. Anyone can find the seed with <code>git rev-list -1 --first-parent --before={{ data.schedule.end }} main</code>.</template><template v-else>After the deadline, the organizers take a public seed announced in advance, shuffle everyone who passed judging, and arrange them in a ring. Each person gives their tree to the next one, so <strong>you never get your own tree</strong>.</template>
 
 The pairing is announced in an Issue in the repo, and anyone can recompute it with the same seed. Remember to Watch the repo's Issues to get notified.
 

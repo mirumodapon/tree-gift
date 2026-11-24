@@ -29,7 +29,23 @@ export function isAllowed(rules: Rules, login: string): boolean {
   return !enabled || users.some((u) => u.toLowerCase() === login.toLowerCase())
 }
 
+/** ISO 8601 時間，必須帶時區（Z 或 ±hh:mm），否則各台機器解讀的時間會不同 */
+const ISO_WITH_ZONE_RE = /^\d{4}-\d\d-\d\dT\d\d:\d\d(:\d\d(\.\d+)?)?(Z|[+-]\d\d:\d\d)$/
+
 export function validateRules(rules: Rules): void {
+  if (rules.schedule) {
+    for (const key of ['start', 'end'] as const) {
+      const v = rules.schedule[key]
+      if (!ISO_WITH_ZONE_RE.test(v) || Number.isNaN(Date.parse(v))) {
+        throw new Error(
+          `rules.ts：schedule.${key}（${JSON.stringify(v)}）要是帶時區的時間，例如 2026-12-24T23:59:59+08:00`,
+        )
+      }
+    }
+    if (Date.parse(rules.schedule.end) <= Date.parse(rules.schedule.start)) {
+      throw new Error('rules.ts：schedule.end 必須晚於 schedule.start')
+    }
+  }
   const seen = new Set<string>()
   for (const user of rules.allowlist.users) {
     if (!LOGIN_RE.test(user)) {

@@ -12,6 +12,7 @@ Write a program that prints a Christmas tree to stdout, and submit it through a 
 <template v-if="data.acceptSubmissions">Submissions are <strong>open</strong>. Come join us!</template>
 <template v-else-if="data.state === 'NOT_STARTED'">The event <strong>hasn't started yet</strong>. Read the rules and write your program locally, then open a PR once submissions open.</template>
 <template v-else>The event <strong>has ended</strong>. Thank you all for taking part!</template>
+<template v-if="data.schedule"><br>Submissions are open from <EventTime :iso="data.schedule.start" /> to <EventTime :iso="data.schedule.end" />. Trees are exchanged automatically after the deadline.</template>
 :::
 
 ## Steps

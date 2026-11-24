@@ -1,0 +1,68 @@
+# ⏰ EVENT_STATE 為 TIME / TIME_SYNC 時，依 rules.ts 的 schedule 自動切換（見 packages/tools/src/tick.ts）：
+#   跨過開始或截止時間 → 重新部署網站（網站上的狀態、是否公開作品）
+#   截止後             → 等截止前送出的 PR 都評測完，自動交換（seed 為截止前 main 上最後一個 commit）
+# 其他 EVENT_STATE 什麼都不做。
+#
+# GitHub 的排程可能延遲數分鐘到更久；收件與否由 review 依 PR 的時間判斷，不受排程延遲影響。
+# 公開 repo 連續 60 天沒有活動時 GitHub 會停用排程，活動前請確認這個 workflow 是啟用的。
+name: Schedule
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: schedule
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      deploy: ${{ steps.tick.outputs.deploy }}
+      exchange: ${{ steps.tick.outputs.exchange }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - id: tick
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          EVENT_STATE: ${{ vars.EVENT_STATE }}
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          OWNER="${GITHUB_REPOSITORY_OWNER,,}"
+          export SITE_URL="${SITE_URL:-https://$OWNER.github.io/${GITHUB_REPOSITORY#*/}}"
+          node packages/tools/src/tick.ts
+
+  exchange:
+    needs: tick
+    if: needs.tick.outputs.exchange == 'true'
+    permissions:
+      contents: write
+      issues: write
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/exchange.yml
+
+  pages:
+    needs: tick
+    if: needs.tick.outputs.deploy == 'true'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/pages.yml

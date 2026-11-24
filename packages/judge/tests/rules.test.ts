@@ -29,3 +29,23 @@ describe('allowlist', () => {
     assert.doesNotThrow(() => validateRules(withList(true, ['alice', 'bob-2'])))
   })
 })
+
+const withSchedule = (start: string, end: string) => ({ ...rules, schedule: { start, end } })
+
+describe('schedule', () => {
+  it('時間要帶時區，end 要晚於 start', () => {
+    assert.throws(
+      () => validateRules(withSchedule('2026-12-01T00:00:00', '2026-12-24T23:59:59Z')),
+      /時區/,
+    )
+    assert.throws(() => validateRules(withSchedule('2026-12-01', '2026-12-24T23:59:59Z')), /時區/)
+    assert.throws(
+      () => validateRules(withSchedule('2026-12-24T00:00:00Z', '2026-12-01T00:00:00Z')),
+      /晚於/,
+    )
+    assert.doesNotThrow(() =>
+      validateRules(withSchedule('2026-12-01T00:00:00+08:00', '2026-12-24T23:59:59+08:00')),
+    )
+    assert.doesNotThrow(() => validateRules({ ...rules, schedule: null }))
+  })
+})

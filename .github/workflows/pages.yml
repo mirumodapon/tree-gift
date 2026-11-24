@@ -1,6 +1,7 @@
 # 建置 VitePress 網站並部署到 GitHub Pages。
 # EVENT_STATE（repo variable）決定是否把聖誕樹放上網站；不公開時不評測、網站裡也不會有作品內容。
 # 注意：修改 EVENT_STATE 不會觸發部署，改完請手動執行這個 workflow。
+# EVENT_STATE 為 TIME / TIME_SYNC 時，跨過開始或截止時間後由 schedule.yml 自動重新部署。
 name: Pages
 
 on:
@@ -49,9 +50,12 @@ jobs:
         env:
           EVENT_STATE: ${{ vars.EVENT_STATE }}
         run: |
-          node --input-type=module -e "
-            import { currentEvent } from '@gift/judge'
-            const { state, policy } = currentEvent()
+          # TIME 模式下，評測與 build 都用同一個時間點判斷狀態
+          now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          echo "EVENT_NOW=$now" >> "$GITHUB_ENV"
+          EVENT_NOW="$now" node --input-type=module -e "
+            import { currentEvent, loadRules } from '@gift/judge'
+            const { state, policy } = currentEvent((await loadRules()).schedule)
             console.log('state=' + state)
             console.log('publish=' + policy.publishTrees)
           " | tee -a "$GITHUB_OUTPUT"

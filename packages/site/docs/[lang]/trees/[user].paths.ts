@@ -12,8 +12,8 @@ import {
 } from '../../.vitepress/results.ts'
 
 export default {
-  paths() {
-    const trees = publishedResults().map((r) => {
+  async paths() {
+    const trees = (await publishedResults()).map((r) => {
       const readme = submissionReadme(r.user)
       return {
         user: r.user,

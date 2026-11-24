@@ -12,6 +12,7 @@ stdout にクリスマスツリーを出力するプログラムを書いて、P
 <template v-if="data.acceptSubmissions">ただいま<strong>受付中</strong>です。ぜひ投稿してください！</template>
 <template v-else-if="data.state === 'NOT_STARTED'">イベントは<strong>まだ始まっていません</strong>。ルールを読んでローカルでプログラムを書いておき、受付が始まったら PR を開きましょう。</template>
 <template v-else>イベントは<strong>終了しました</strong>。ご参加ありがとうございました！</template>
+<template v-if="data.schedule"><br>受付期間：<EventTime :iso="data.schedule.start" /> ～ <EventTime :iso="data.schedule.end" />。締め切り後に自動で交換されます。</template>
 :::
 
 ## 手順

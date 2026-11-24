@@ -7,6 +7,8 @@ import type { Locale } from '../locales.ts'
 export interface Messages {
   /** 語言選單裡的名稱 */
   label: string
+  /** 顯示日期時間用的語言標籤（Intl.DateTimeFormat） */
+  dateLocale: string
   status: Record<EventState, string>
   submissionCount: (n: number) => string
   exchanged: string
@@ -47,6 +49,7 @@ export interface Messages {
 export const MESSAGES: Record<Locale, Messages> = {
   'zh-hant': {
     label: '繁體中文',
+    dateLocale: 'zh-TW',
     status: {
       NOT_STARTED: '即將開始',
       PROGRESS: '收件中',
@@ -89,6 +92,7 @@ export const MESSAGES: Record<Locale, Messages> = {
   },
   en: {
     label: 'English',
+    dateLocale: 'en',
     status: {
       NOT_STARTED: 'Coming soon',
       PROGRESS: 'Open for submissions',
@@ -132,6 +136,7 @@ export const MESSAGES: Record<Locale, Messages> = {
   },
   ja: {
     label: '日本語',
+    dateLocale: 'ja',
     status: {
       NOT_STARTED: 'まもなく開始',
       PROGRESS: '受付中',
@@ -179,6 +184,7 @@ export const MESSAGES: Record<Locale, Messages> = {
   },
   ko: {
     label: '한국어',
+    dateLocale: 'ko',
     status: {
       NOT_STARTED: '곧 시작',
       PROGRESS: '접수 중',

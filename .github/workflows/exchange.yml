@@ -1,13 +1,15 @@
-# 🎁 交換！截止後由管理員手動執行。
+# 🎁 交換！截止後由管理員手動執行；EVENT_STATE 為 TIME / TIME_SYNC 時由 schedule.yml 在截止後自動執行。
 # 重新評測 → 用公開 seed 配對 → commit exchange.json → 開公告 issue → 更新展示頁
+# TIME / TIME_SYNC 的 seed 固定為截止前 main 上最後一個 commit 的 sha，不能另外指定。
 name: Exchange
 
 on:
   workflow_dispatch:
     inputs:
       seed:
-        description: 公開的配對 seed（建議事先公告來源；留空則用目前的 commit sha）
+        description: 公開的配對 seed（建議事先公告來源；留空則用目前的 commit sha；TIME 模式不能指定）
         required: false
+  workflow_call:
 
 permissions:
   contents: write
@@ -24,6 +26,9 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
+        with:
+          # TIME 模式要從完整歷史找出截止前最後一個 commit
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
         with:
@@ -39,11 +44,11 @@ jobs:
           # 還在收件中（PROGRESS / PROGRESS_SYNC）時拒絕交換
           EVENT_STATE: ${{ vars.EVENT_STATE }}
         run: |
-          SEED="${SEED_INPUT:-$GITHUB_SHA}"
           OWNER="${GITHUB_REPOSITORY_OWNER,,}"
           SITE="${SITE_URL:-https://$OWNER.github.io/${GITHUB_REPOSITORY#*/}}"
-          node packages/tools/src/exchange.ts --seed "$SEED" --site-url "$SITE" --out-dir out
-          echo "SEED=$SEED" >> "$GITHUB_ENV"
+          node packages/tools/src/exchange.ts ${SEED_INPUT:+--seed "$SEED_INPUT"} \
+            --fallback-seed "$GITHUB_SHA" --site-url "$SITE" --out-dir out
+          echo "SEED=$(node -p 'require("./exchange.json").seed')" >> "$GITHUB_ENV"
 
       - name: Commit exchange.json
         run: |

@@ -9,6 +9,7 @@ import {
   ansi,
   currentEvent,
   isAllowed,
+  type EventSchedule,
   loadRules,
   readExchange,
   REPO_ROOT,
@@ -49,6 +50,8 @@ export interface GiftData {
   state: EventState
   acceptSubmissions: boolean
   publishTrees: boolean
+  /** EVENT_STATE 為 TIME / TIME_SYNC 時的收件區間，網站上顯示開始與截止時間；其他模式為 null */
+  schedule: EventSchedule | null
   repo: string | null
   /** 已合併的投稿數（submissions/ 底下的資料夾數），不公開作品時也會顯示 */
   submissionCount: number
@@ -88,12 +91,12 @@ function submissionUsers(rules: Rules): string[] {
     .filter((u) => isAllowed(rules, u))
 }
 
-function loadTrees(repo: string | null): { trees: Tree[]; exchanged: boolean } {
+async function loadTrees(repo: string | null): Promise<{ trees: Tree[]; exchanged: boolean }> {
   const pairs = readExchange()?.pairs ?? []
   const giftTo = new Map(pairs.map((p) => [p.from, p.to]))
   const giftFrom = new Map(pairs.map((p) => [p.to, p.from]))
 
-  const trees = publishedResults().map((r): Tree => {
+  const trees = (await publishedResults()).map((r): Tree => {
     const a = r.animation
     return {
       user: r.user,
@@ -116,17 +119,18 @@ function loadTrees(repo: string | null): { trees: Tree[]; exchanged: boolean } {
 export default defineLoader({
   watch: [`${RESULTS_DIR}/*.json`, `${REPO_ROOT}/exchange.json`, `${REPO_ROOT}/rules.ts`],
   async load(): Promise<GiftData> {
-    const { state, policy } = currentEvent()
     const rules = await loadRules()
+    const { state, policy, schedule } = currentEvent(rules.schedule)
     const repo = process.env.GITHUB_REPOSITORY ?? null
     const { trees, exchanged } = policy.publishTrees
-      ? loadTrees(repo)
+      ? await loadTrees(repo)
       : { trees: [], exchanged: false }
 
     return {
       state,
       acceptSubmissions: policy.acceptSubmissions,
       publishTrees: policy.publishTrees,
+      schedule,
       repo,
       submissionCount: submissionUsers(rules).length,
       rules: {

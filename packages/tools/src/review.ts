@@ -8,11 +8,12 @@
 // 產出 <OUT_DIR>/decision.json 交給 act job，exit code 決定 PR check 的紅綠燈。
 //
 // 環境變數：GITHUB_TOKEN, GITHUB_REPOSITORY, PR_NUMBER, OUT_DIR,
-//           RUN_URL（選填）, EVENT_STATE（活動狀態，未定義視為 FATAL：不收件）
+//           RUN_URL（選填）, EVENT_STATE（活動狀態，未定義視為 FATAL：不收件）,
+//           EVENT_NOW（選填，TIME 模式判斷是否在收件時間內的時間點；review.yml 傳入 PR 的更新時間）
 
 import fs from 'node:fs'
 import path from 'node:path'
-import { isAllowed, judge, loadRules, parseEventState, REPO_ROOT } from '@gift/judge'
+import { currentEvent, isAllowed, judge, loadRules, REPO_ROOT } from '@gift/judge'
 import { checkPaths, type ChangedFile } from './check-paths.ts'
 import { decide, precheck, type DecideInput } from './decide.ts'
 import { fetchSubmission } from './fetch-submission.ts'
@@ -34,7 +35,8 @@ const rules = await loadRules()
 const files = await gh.paginate<ChangedFile>(`/pulls/${prNumber}/files`)
 const paths = checkPaths(files, author)
 const input: DecideInput = {
-  eventState: parseEventState(process.env.EVENT_STATE),
+  // TIME 模式下以 PR 開啟／更新的時間判斷，截止前送出但排隊到截止後才評測的 PR 仍然算數
+  eventState: currentEvent(rules.schedule).state,
   draft: pr.draft,
   targetsDefault: pr.base.ref === repo.default_branch,
   userType: pr.user.type,

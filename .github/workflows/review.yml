@@ -43,6 +43,8 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           # repo variable：活動狀態，決定是否收件（未定義視為 FATAL，不收件）
           EVENT_STATE: ${{ vars.EVENT_STATE }}
+          # TIME 模式用 PR 開啟／更新的時間判斷是否在收件時間內，排隊到截止後才評測也不會被拒
+          EVENT_NOW: ${{ github.event.pull_request.updated_at }}
         run: node packages/tools/src/review.ts
 
       - uses: actions/upload-artifact@v4

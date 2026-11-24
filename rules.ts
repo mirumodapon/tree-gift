@@ -36,6 +36,14 @@ export default {
     users: [], // 例如 ['octocat', 'monalisa']
   },
 
+  // 收件時間：repo variable EVENT_STATE 設為 TIME 或 TIME_SYNC 時才生效
+  // start 前不收件、start ～ end 收件、end 之後截止並自動交換（seed 為截止前 main 上最後一個 commit 的 sha）
+  // 時間要帶時區；EVENT_STATE 是其他值時這裡不影響任何事
+  schedule: {
+    start: '2026-12-01T00:00:00+08:00',
+    end: '2026-12-24T23:59:59+08:00',
+  },
+
   // 副檔名 -> image / 編譯指令 / 執行指令
   // 進入點必須是 tree.<副檔名>，同資料夾可放其他檔案（模組、標頭檔、資料）。
   // 投稿資料夾掛載在 /src（唯讀，也是工作目錄），/tmp 可寫可執行。

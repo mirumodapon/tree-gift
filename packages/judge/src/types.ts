@@ -1,3 +1,5 @@
+import type { EventSchedule } from './event-state.ts'
+
 export interface Language {
   /** 顯示名稱 */
   name: string
@@ -59,6 +61,11 @@ export interface Rules {
     /** GitHub 帳號名稱（login） */
     users: string[]
   }
+  /**
+   * 收件時間區間：EVENT_STATE 設為 TIME / TIME_SYNC 時，依這個區間自動開始與截止，截止後自動交換。
+   * 時間要帶時區（例如 2026-12-24T23:59:59+08:00）；不使用時可設為 null。
+   */
+  schedule: EventSchedule | null
   /** 副檔名 -> 語言設定；參加者的檔名必須是 tree.<副檔名> */
   languages: Record<string, Language>
 }

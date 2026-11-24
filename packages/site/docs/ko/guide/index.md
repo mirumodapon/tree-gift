@@ -12,6 +12,7 @@ stdout에 크리스마스 트리를 출력하는 프로그램을 작성해 Pull 
 <template v-if="data.acceptSubmissions">지금 <strong>접수 중</strong>이에요. 많이 참여해 주세요!</template>
 <template v-else-if="data.state === 'NOT_STARTED'">이벤트가 <strong>아직 시작되지 않았어요</strong>. 규칙을 읽고 로컬에서 프로그램을 작성해 두었다가, 접수가 시작되면 PR을 열어 주세요.</template>
 <template v-else>이벤트가 <strong>종료되었어요</strong>. 참여해 주셔서 감사합니다!</template>
+<template v-if="data.schedule"><br>접수 기간: <EventTime :iso="data.schedule.start" /> ~ <EventTime :iso="data.schedule.end" />. 마감 후 자동으로 교환돼요.</template>
 :::
 
 ## 단계

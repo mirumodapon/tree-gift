@@ -82,12 +82,13 @@ packages/
 rules.ts   所有規則與語言設定
 ```
 
-| Workflow       | 觸發                | 做什麼                                                                               |
-| -------------- | ------------------- | ------------------------------------------------------------------------------------ |
-| `review.yml`   | PR                  | 分類 PR；投稿 PR 在沙箱中評測，通過就 merge、否則關閉                                |
-| `pages.yml`    | push 到 main / 手動 | 建置並部署活動網站；依 `EVENT_STATE` 決定是否評測並公開作品（自動 merge 後也會觸發） |
-| `exchange.yml` | 手動                | 重新評測 → 配對 → commit `exchange.json` → 開公告                                    |
-| `ci.yml`       | 改到 judge 或工具時 | lint、format、typecheck、測試                                                        |
+| Workflow       | 觸發                | 做什麼                                                                                 |
+| -------------- | ------------------- | -------------------------------------------------------------------------------------- |
+| `review.yml`   | PR                  | 分類 PR；投稿 PR 在沙箱中評測，通過就 merge、否則關閉                                  |
+| `pages.yml`    | push 到 main / 手動 | 建置並部署活動網站；依 `EVENT_STATE` 決定是否評測並公開作品（自動 merge 後也會觸發）   |
+| `exchange.yml` | 手動 / 排程         | 重新評測 → 配對 → commit `exchange.json` → 開公告                                      |
+| `schedule.yml` | 每 10 分鐘          | `EVENT_STATE` 為 `TIME` / `TIME_SYNC` 時：跨過開始或截止時間就重新部署，截止後自動交換 |
+| `ci.yml`       | 改到 judge 或工具時 | lint、format、typecheck、測試                                                          |
 
 ### PR 怎麼處理
 
@@ -131,7 +132,7 @@ rules.ts   所有規則與語言設定
    - **不要**開「Require branches to be up to date」：投稿 PR 之間互不衝突，開了反而會卡住
 3. **Settings → Secrets and variables → Actions → Variables**：
    - `EVENT_STATE`：活動狀態，見下方「活動狀態」
-   - `SITE_URL`（選填）：自訂網域時設定，交換公告裡「打開禮物」的連結會用它
+   - `SITE_URL`（選填）：自訂網域時設定，交換公告裡「打開禮物」的連結會用它；`schedule.yml` 也用它讀取網站目前的狀態
 4. 如果 `main` 禁止直接 push，請允許 GitHub Actions 推送，或改用 PR 合併 `exchange.json`
 
 ### 投稿白名單
@@ -154,29 +155,57 @@ allowlist: {
 
 repo variable `EVENT_STATE` 決定是否收件、是否把聖誕樹公開到網站上：
 
-| `EVENT_STATE`   | 意義                 | 收件 | 公開作品 |
-| --------------- | -------------------- | ---- | -------- |
-| `NOT_STARTED`   | 尚未開始             | ✗    | ✗        |
-| `PROGRESS`      | 進行中，作品保密     | ✓    | ✗        |
-| `PROGRESS_SYNC` | 進行中，作品即時公開 | ✓    | ✓        |
-| `ENDED`         | 已結束，公開作品     | ✗    | ✓        |
-| `FATAL`         | 已結束，不公開作品   | ✗    | ✗        |
+| `EVENT_STATE`   | 意義                 | 收件   | 公開作品 |
+| --------------- | -------------------- | ------ | -------- |
+| `NOT_STARTED`   | 尚未開始             | ✗      | ✗        |
+| `PROGRESS`      | 進行中，作品保密     | ✓      | ✗        |
+| `PROGRESS_SYNC` | 進行中，作品即時公開 | ✓      | ✓        |
+| `ENDED`         | 已結束，公開作品     | ✗      | ✓        |
+| `FATAL`         | 已結束，不公開作品   | ✗      | ✗        |
+| `TIME`          | 依時間，作品保密     | 時間內 | 截止後   |
+| `TIME_SYNC`     | 依時間，作品即時公開 | 時間內 | 開始後   |
+
+`TIME` / `TIME_SYNC` 依 `rules.ts` 的 `schedule`（`start`、`end`，要帶時區，例如 `2026-12-24T23:59:59+08:00`）自動切換：
+
+| 時間             | `TIME`            | `TIME_SYNC`       |
+| ---------------- | ----------------- | ----------------- |
+| `start` 之前     | `NOT_STARTED`     | `NOT_STARTED`     |
+| `start` ～ `end` | `PROGRESS`        | `PROGRESS_SYNC`   |
+| `end` 之後       | `ENDED`，自動交換 | `ENDED`，自動交換 |
+
+- PR 是否在收件時間內，看的是 **PR 開啟或更新的時間**，截止前送出、排隊到截止後才評測的 PR 一樣算數
+- 網站由 `schedule.yml` 每 10 分鐘檢查一次，跨過開始或截止時間後自動重新部署；GitHub 的排程可能延遲，網站更新會晚一點，但不影響收件判斷
+- 截止後等所有 review 都跑完，`schedule.yml` 會自動執行交換，seed 固定為**截止前 `main` 上最後一個 commit 的 sha**（見下方「交換」）
+- 公開 repo 連續 60 天沒有活動時，GitHub 會停用排程 workflow，活動前請到 Actions 確認 **Schedule** 是啟用的
+- 設成 `TIME` / `TIME_SYNC` 卻沒有設定 `schedule` 時視為 `FATAL`
 
 - **未定義或打錯字一律視為 `FATAL`**（不收件、不公開），新建的 repo 要先設定才會開始收件
 - 不公開時，網站 build 完全不讀取作品，產出的檔案裡不會有任何作品內容
 - **修改 `EVENT_STATE` 不會自動更新網站**，改完請到 **Actions → Pages → Run workflow** 重新部署
 
-典型流程：`NOT_STARTED` → 開放投稿 `PROGRESS`（或 `PROGRESS_SYNC`）→ 截止 `ENDED` → 執行 Exchange workflow（完成後會自動重新部署網站）
+典型流程：
+
+- 手動：`NOT_STARTED` → 開放投稿 `PROGRESS`（或 `PROGRESS_SYNC`）→ 截止 `ENDED` → 執行 Exchange workflow（完成後會自動重新部署網站）
+- 自動：在 `rules.ts` 設好 `schedule`，`EVENT_STATE` 設成 `TIME`（或 `TIME_SYNC`）後重新部署一次網站，之後開始、截止、交換都會自動進行
 
 ### 交換
 
-截止時先把 `EVENT_STATE` 改成 `ENDED`（或 `FATAL`）停止收件，再到 **Actions → Exchange → Run workflow**，輸入事先公告的 seed（例如截止後第一個比特幣區塊的 hash，或直播抽籤的結果）。
-（還在收件中時，交換會被拒絕。）配對方式是用 seed 洗牌後排成一個環，每個人送給下一位，保證不會抽到自己。任何人都能用同一個 seed 重算驗證：
+**`TIME` / `TIME_SYNC`（自動）**：截止後由 `schedule.yml` 自動執行，不用手動操作。seed 固定為**截止時間前 `main` 上最後一個 commit 的 sha**，不能另外指定，公告與網站上都會說明。任何人都能重算驗證：
+
+```sh
+git rev-list -1 --first-parent --before=<schedule.end> main   # 找出 seed
+pnpm judge --all
+EVENT_STATE=TIME node packages/tools/src/exchange.ts --seed <seed>
+```
+
+**其他模式（手動）**：截止時先把 `EVENT_STATE` 改成 `ENDED`（或 `FATAL`）停止收件，再到 **Actions → Exchange → Run workflow**，輸入事先公告的 seed（例如截止後第一個比特幣區塊的 hash，或直播抽籤的結果；留空則用目前的 commit sha）。任何人都能用同一個 seed 重算驗證：
 
 ```sh
 pnpm judge --all
 node packages/tools/src/exchange.ts --seed <seed>
 ```
+
+還在收件中時，交換會被拒絕。配對方式是用 seed 洗牌後排成一個環，每個人送給下一位，保證不會抽到自己。通過評測的不到兩人時不會配對，只會公告無法交換。
 
 ### 開發
 

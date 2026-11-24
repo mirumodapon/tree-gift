@@ -4,6 +4,7 @@ import DefaultTheme from 'vitepress/theme'
 import { defineComponent, h, onMounted, watch } from 'vue'
 import { detectLocale, isLocale, LOCALE_STORAGE_KEY, localizedPath } from '../locales.ts'
 import EventStatus from './components/EventStatus.vue'
+import EventTime from './components/EventTime.vue'
 import GiftPage from './components/GiftPage.vue'
 import LanguageTable from './components/LanguageTable.vue'
 import TreeGallery from './components/TreeGallery.vue'
@@ -51,6 +52,7 @@ export default {
   extends: DefaultTheme,
   Layout,
   enhanceApp({ app }) {
+    app.component('EventTime', EventTime)
     app.component('TreeGallery', TreeGallery)
     app.component('TreePage', TreePage)
     app.component('GiftPage', GiftPage)

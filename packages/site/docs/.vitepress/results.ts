@@ -3,7 +3,8 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
-import { currentEvent, LOGIN_RE, REPO_ROOT, type JudgeResult } from '@gift/judge'
+import { LOGIN_RE, REPO_ROOT, type JudgeResult } from '@gift/judge'
+import { siteEvent } from './event.ts'
 
 export const RESULTS_DIR = process.env.GIFT_RESULTS_DIR ?? path.join(REPO_ROOT, 'out/results')
 
@@ -53,8 +54,8 @@ export function submissionReadme(user: string): string | null {
 }
 
 /** 通過評測的作品；不公開時回傳空陣列 */
-export function publishedResults(): JudgeResult[] {
-  if (!currentEvent().policy.publishTrees) return []
+export async function publishedResults(): Promise<JudgeResult[]> {
+  if (!(await siteEvent()).policy.publishTrees) return []
   if (!fs.existsSync(RESULTS_DIR)) {
     throw new Error(
       `EVENT_STATE 要求公開作品，但找不到評測結果 ${RESULTS_DIR}。` +
