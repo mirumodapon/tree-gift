@@ -26,7 +26,8 @@ function ensureImage(image: string): void {
 export class Sandbox {
   readonly name = `santa-${randomBytes(6).toString('hex')}`
 
-  constructor(image: string, srcDir: string, sb: Rules['sandbox']) {
+  /** memory：啟動時的記憶體上限，之後可用 limitMemory 調降 */
+  constructor(image: string, srcDir: string, sb: Rules['sandbox'], memory = sb.memory) {
     ensureImage(image)
     const args = [
       'run',
@@ -37,9 +38,9 @@ export class Sandbox {
       '--network',
       'none',
       '--memory',
-      sb.memory,
+      memory,
       '--memory-swap',
-      sb.memory,
+      memory,
       '--cpus',
       sb.cpus,
       '--pids-limit',
@@ -141,6 +142,18 @@ export class Sandbox {
       })
       p.on('close', finish)
     })
+  }
+
+  /** 調整執行中 container 的記憶體上限（編譯完後降回執行用的限制） */
+  limitMemory(memory: string): void {
+    const r = spawnSync(
+      'docker',
+      ['update', '--memory', memory, '--memory-swap', memory, this.name],
+      {
+        encoding: 'utf8',
+      },
+    )
+    if (r.status !== 0) throw new Error(`docker update 失敗：${r.stderr || r.error?.message}`)
   }
 
   kill(): void {

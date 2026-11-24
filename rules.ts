@@ -15,7 +15,8 @@ export default {
   sandbox: {
     runTimeout: 5, // 執行逾時（秒）
     compileTimeout: 60, // 編譯逾時（秒）
-    memory: '256m',
+    memory: '256m', // 執行時的記憶體上限
+    compileMemory: '1g', // 編譯階段的記憶體上限，編譯完降回 memory
     cpus: '1',
     pids: 128, // 防 fork bomb
     maxFiles: 20, // 投稿資料夾最多幾個檔案
@@ -45,7 +46,9 @@ export default {
     go: {
       name: 'Go 1.23',
       image: 'golang:1.23',
-      compile: 'cd /tmp && go build -o /tmp/tree /src/*.go',
+      // -p 1：Go 1.23 不認 container 的 CPU 配額，預設會依主機核心數平行編譯而吃光記憶體
+      // 編完刪掉 build cache：/tmp 是 tmpfs，會佔用執行階段的記憶體額度
+      compile: 'cd /tmp && go build -p 1 -o /tmp/tree /src/*.go && rm -rf /tmp/gocache',
       run: '/tmp/tree',
     },
     rs: {

@@ -27,7 +27,10 @@ export interface Rules {
   sandbox: {
     runTimeout: number
     compileTimeout: number
+    /** 執行參加者程式時的記憶體上限 */
     memory: string
+    /** 編譯階段的記憶體上限（編譯器比程式本身吃記憶體，編譯完會降回 memory） */
+    compileMemory: string
     cpus: string
     pids: number
     /** 投稿資料夾最多幾個檔案 */

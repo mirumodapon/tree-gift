@@ -100,7 +100,7 @@ export async function judge(
     return finish()
   }
   if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) {
-    fail('no_folder', `找不到資料夾 ${dir}`)
+    fail('no_folder', `找不到資料夾 submissions/${user}/`)
     return finish()
   }
 
@@ -115,7 +115,7 @@ export async function judge(
 
   let box: Sandbox
   try {
-    box = new Sandbox(lang.image, dir, sb)
+    box = new Sandbox(lang.image, dir, sb, lang.compile ? sb.compileMemory : sb.memory)
   } catch (e) {
     fail('internal_error', `無法啟動沙箱：${(e as Error).message}`)
     return finish()
@@ -130,6 +130,12 @@ export async function judge(
       if (r.code !== 0) {
         res.stderr = Buffer.concat([r.stdout, r.stderr]).toString('utf8').slice(-STDERR_CAP)
         fail('compile_error', '編譯失敗')
+        return finish()
+      }
+      try {
+        box.limitMemory(sb.memory)
+      } catch (e) {
+        fail('internal_error', (e as Error).message)
         return finish()
       }
     }
