@@ -1,11 +1,23 @@
 // 用法：
-//   pnpm judge submissions/<github-id> [--out result.json] [--user <id>] [--rules rules.ts]
+//   pnpm judge <github-id>        評測 submissions/<github-id>/
+//   pnpm judge <資料夾路徑>        評測任意資料夾（例如 examples/python）
+// 選項：[--out result.json] [--user <id>] [--rules rules.ts]
 
 import fs from 'node:fs'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
 import { judge } from './judge.ts'
-import { loadRules } from './rules.ts'
+import { loadRules, REPO_ROOT } from './rules.ts'
+
+/** 參數是存在的資料夾就直接用，否則當成 GitHub ID 對應到 submissions/<id>/。 */
+function resolveDir(arg: string): string {
+  if (fs.statSync(arg, { throwIfNoEntry: false })?.isDirectory()) return arg
+  const sub = path.join(REPO_ROOT, 'submissions', arg)
+  if (fs.statSync(sub, { throwIfNoEntry: false })?.isDirectory()) return sub
+  console.error(`找不到資料夾：${path.resolve(arg)}`)
+  console.error(`也找不到投稿：${path.relative(process.cwd(), sub) || sub}`)
+  process.exit(2)
+}
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -16,12 +28,12 @@ const { values, positionals } = parseArgs({
   },
 })
 if (positionals.length !== 1) {
-  console.error('用法：pnpm judge <submission_dir> [--out result.json] [--user id]')
+  console.error('用法：pnpm judge <github-id 或資料夾路徑> [--out result.json] [--user id]')
   process.exit(2)
 }
 
 const rules = await loadRules(values.rules)
-const result = await judge(positionals[0]!, rules, values.user)
+const result = await judge(resolveDir(positionals[0]!), rules, values.user)
 const json = JSON.stringify(result, null, 2)
 if (values.out) {
   fs.mkdirSync(path.dirname(path.resolve(values.out)), { recursive: true })

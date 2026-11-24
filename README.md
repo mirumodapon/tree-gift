@@ -63,7 +63,7 @@ submissions/
 
 ```sh
 pnpm install
-pnpm judge submissions/<你的 ID>
+pnpm judge <你的 ID>        # 評測 submissions/<你的 ID>/
 ```
 
 ## 主辦方
