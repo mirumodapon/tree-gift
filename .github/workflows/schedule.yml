@@ -3,13 +3,15 @@
 #   截止後             → 等截止前送出的 PR 都評測完，自動交換（seed 為截止前 main 上最後一個 commit）
 # 其他 EVENT_STATE 什麼都不做。
 #
-# GitHub 的排程可能延遲數分鐘到更久；收件與否由 review 依 PR 的時間判斷，不受排程延遲影響。
+# 一天只檢查兩次，網站狀態與自動交換最多會晚約半天；收件與否由 review 依 PR 的時間判斷，不受影響。
+# GitHub 的排程本身也可能再延遲數分鐘到更久。需要立刻處理時可以手動 Run workflow。
 # 公開 repo 連續 60 天沒有活動時 GitHub 會停用排程，活動前請確認這個 workflow 是啟用的。
 name: Schedule
 
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    # 每天台灣時間 12:00 與 23:00（cron 用 UTC）
+    - cron: '0 4,15 * * *'
   workflow_dispatch:
 
 permissions: {}

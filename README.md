@@ -87,7 +87,7 @@ rules.ts   所有規則與語言設定
 | `review.yml`   | PR                  | 分類 PR；投稿 PR 在沙箱中評測，通過就 merge、否則關閉                                  |
 | `pages.yml`    | push 到 main / 手動 | 建置並部署活動網站；依 `EVENT_STATE` 決定是否評測並公開作品（自動 merge 後也會觸發）   |
 | `exchange.yml` | 手動 / 排程         | 重新評測 → 配對 → commit `exchange.json` → 開公告                                      |
-| `schedule.yml` | 每 10 分鐘          | `EVENT_STATE` 為 `TIME` / `TIME_SYNC` 時：跨過開始或截止時間就重新部署，截止後自動交換 |
+| `schedule.yml` | 每天 12:00、23:00   | `EVENT_STATE` 為 `TIME` / `TIME_SYNC` 時：跨過開始或截止時間就重新部署，截止後自動交換 |
 | `ci.yml`       | 改到 judge 或工具時 | lint、format、typecheck、測試                                                          |
 
 ### PR 怎麼處理
@@ -174,7 +174,7 @@ repo variable `EVENT_STATE` 決定是否收件、是否把聖誕樹公開到網�
 | `end` 之後       | `ENDED`，自動交換 | `ENDED`，自動交換 |
 
 - PR 是否在收件時間內，看的是 **PR 開啟或更新的時間**，截止前送出、排隊到截止後才評測的 PR 一樣算數
-- 網站由 `schedule.yml` 每 10 分鐘檢查一次，跨過開始或截止時間後自動重新部署；GitHub 的排程可能延遲，網站更新會晚一點，但不影響收件判斷
+- 網站由 `schedule.yml` 每天台灣時間 12:00 與 23:00 檢查，跨過開始或截止時間後自動重新部署、截止後自動交換，所以網站狀態與交換最多會晚約半天（GitHub 的排程本身也可能再延遲）；收件判斷看的是 PR 的時間，不受影響。需要立刻處理時，可以到 **Actions → Schedule → Run workflow** 手動執行
 - 截止後等所有 review 都跑完，`schedule.yml` 會自動執行交換，seed 固定為**截止前 `main` 上最後一個 commit 的 sha**（見下方「交換」）
 - 公開 repo 連續 60 天沒有活動時，GitHub 會停用排程 workflow，活動前請到 Actions 確認 **Schedule** 是啟用的
 - 設成 `TIME` / `TIME_SYNC` 卻沒有設定 `schedule` 時視為 `FATAL`
