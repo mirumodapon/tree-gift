@@ -15,11 +15,19 @@ export interface ExecResult {
   ms: number
 }
 
+/** image 不在本機時先 pull；大型 image（rust、golang）第一次可能要好幾分鐘。 */
+function ensureImage(image: string): void {
+  if (spawnSync('docker', ['image', 'inspect', image], { stdio: 'ignore' }).status === 0) return
+  const r = spawnSync('docker', ['pull', '-q', image], { encoding: 'utf8', timeout: 600_000 })
+  if (r.status !== 0) throw new Error(`docker pull ${image} 失敗：${r.stderr || r.error?.message}`)
+}
+
 /** 一份投稿一個 container：sleep 撐著，用 docker exec 編譯與執行。 */
 export class Sandbox {
   readonly name = `santa-${randomBytes(6).toString('hex')}`
 
   constructor(image: string, srcDir: string, sb: Rules['sandbox']) {
+    ensureImage(image)
     const args = [
       'run',
       '-d',
