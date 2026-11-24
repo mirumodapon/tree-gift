@@ -76,8 +76,8 @@ pnpm judge <你的 ID>        # 評測 submissions/<你的 ID>/
 
 ```
 packages/
-  judge/   沙箱執行與輸出檢查（Docker），以及 exchange.json 的格式
-  tools/   PR 自動審查、配對、評測全部投稿
+  judge/   沙箱執行與輸出檢查（Docker）、評測全部投稿，以及 exchange.json 的格式
+  tools/   PR 自動審查、配對
   site/    活動網站（VitePress）：首頁、參加方式、作品牆、禮物頁
 rules.ts   所有規則與語言設定
 ```
@@ -174,7 +174,7 @@ repo variable `EVENT_STATE` 決定是否收件、是否把聖誕樹公開到網�
 （還在收件中時，交換會被拒絕。）配對方式是用 seed 洗牌後排成一個環，每個人送給下一位，保證不會抽到自己。任何人都能用同一個 seed 重算驗證：
 
 ```sh
-node packages/tools/src/judge-all.ts
+pnpm judge --all
 node packages/tools/src/exchange.ts --seed <seed>
 ```
 
