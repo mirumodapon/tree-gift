@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { REPO_ROOT } from '@gift/judge'
+import { currentEvent, REPO_ROOT } from '@gift/judge'
 import { defineConfig } from 'vitepress'
 import { castsDevServer, writeCasts } from './casts.ts'
 
@@ -7,6 +7,10 @@ const repo = process.env.GITHUB_REPOSITORY
 
 // GitHub Pages 的專案網站在 /<repo>/ 底下，由 pages.yml 傳入
 const base = process.env.SITE_BASE ?? '/'
+
+// 不公開作品（EVENT_STATE）時整個作品牆都不出現：不產生頁面、導覽列與首頁也不放連結
+const { publishTrees } = currentEvent().policy
+const GALLERY = '/gallery'
 
 export default defineConfig({
   lang: 'zh-Hant',
@@ -16,12 +20,17 @@ export default defineConfig({
   outDir: path.join(REPO_ROOT, '_site'),
   head: [['link', { rel: 'icon', type: 'image/svg+xml', href: `${base}favicon.svg` }]],
   lastUpdated: false,
+  srcExclude: publishTrees ? [] : ['gallery.md'],
 
   // 動畫作品的 /casts/<user>.cast（不公開作品時不會產生）
   vite: { plugins: [castsDevServer()] },
   buildEnd: (site) => writeCasts(site.outDir),
-  // 動態路由的頁面標題
+  // 動態路由的頁面標題；不公開作品時拿掉首頁的作品牆按鈕
   transformPageData(page) {
+    const hero = page.frontmatter.hero
+    if (!publishTrees && hero?.actions) {
+      hero.actions = hero.actions.filter((a: { link?: string }) => a.link !== GALLERY)
+    }
     const user = page.params?.user
     if (typeof user !== 'string') return
     if (page.relativePath.startsWith('trees/')) page.title = `@${user} 的聖誕樹`
@@ -32,7 +41,7 @@ export default defineConfig({
     logo: { src: '/favicon.svg', alt: '' },
     nav: [
       { text: '參加方式', link: '/guide/', activeMatch: '/guide/' },
-      { text: '作品牆', link: '/gallery' },
+      ...(publishTrees ? [{ text: '作品牆', link: GALLERY }] : []),
     ],
     sidebar: {
       '/guide/': [

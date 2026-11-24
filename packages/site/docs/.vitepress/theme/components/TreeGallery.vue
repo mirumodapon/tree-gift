@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { IconGift, IconPlant } from '@tabler/icons-vue'
-import { withBase } from 'vitepress'
+import { IconPlant } from '@tabler/icons-vue'
 import { computed, ref } from 'vue'
 import { data } from '../../gift.data.ts'
-import { STATUS } from '../status.ts'
 import TreeCard from './TreeCard.vue'
 
 const languages = [...new Set(data.trees.map((t) => t.languageName))].toSorted()
@@ -15,37 +13,27 @@ const trees = computed(() =>
 
 <template>
   <div class="gallery">
-    <div v-if="!data.publishTrees" class="notice">
-      <IconGift class="notice-icon" :size="48" :stroke="1.5" />
-      <p>{{ STATUS[data.state].hidden }}</p>
-      <p v-if="data.acceptSubmissions">
-        <a :href="withBase('/guide/')">還沒投稿？看看參加方式 →</a>
-      </p>
+    <div v-if="languages.length > 1" class="filters" role="group" aria-label="依語言篩選">
+      <button :class="{ active: selected === null }" @click="selected = null">
+        全部 {{ data.trees.length }}
+      </button>
+      <button
+        v-for="lang in languages"
+        :key="lang"
+        :class="{ active: selected === lang }"
+        @click="selected = lang"
+      >
+        {{ lang }}
+      </button>
     </div>
 
-    <template v-else>
-      <div v-if="languages.length > 1" class="filters" role="group" aria-label="依語言篩選">
-        <button :class="{ active: selected === null }" @click="selected = null">
-          全部 {{ data.trees.length }}
-        </button>
-        <button
-          v-for="lang in languages"
-          :key="lang"
-          :class="{ active: selected === lang }"
-          @click="selected = lang"
-        >
-          {{ lang }}
-        </button>
-      </div>
-
-      <div v-if="trees.length" class="grid">
-        <TreeCard v-for="tree in trees" :key="tree.user" :tree="tree" />
-      </div>
-      <div v-else class="notice">
-        <IconPlant class="notice-icon" :size="48" :stroke="1.5" />
-        <p>還沒有作品，成為第一棵樹吧！</p>
-      </div>
-    </template>
+    <div v-if="trees.length" class="grid">
+      <TreeCard v-for="tree in trees" :key="tree.user" :tree="tree" />
+    </div>
+    <div v-else class="notice">
+      <IconPlant class="notice-icon" :size="48" :stroke="1.5" />
+      <p>還沒有作品，成為第一棵樹吧！</p>
+    </div>
   </div>
 </template>
 

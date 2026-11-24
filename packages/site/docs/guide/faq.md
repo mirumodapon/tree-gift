@@ -28,7 +28,7 @@ import { data } from '../.vitepress/gift.data.ts'
 
 ## 什麼時候看得到大家的作品？
 
-<template v-if="data.publishTrees">現在就可以，到<a href="../gallery.html">作品牆</a>看看！</template><template v-else>依活動安排，作品會在之後公開到<a href="../gallery.html">作品牆</a>。</template>
+<template v-if="data.publishTrees">現在就可以，到<a href="../gallery.html">作品牆</a>看看！</template><template v-else>依活動安排，作品會在之後公開到作品牆。</template>
 
 ## 可以做動畫嗎？
 
