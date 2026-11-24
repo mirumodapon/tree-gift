@@ -1,5 +1,6 @@
 // 產生靜態展示頁（GitHub Pages）。
-// 用法：pnpm site [--results out/results] [--out _site]
+// 用法：node packages/site/src/build.ts [--results out/results] [--out _site]
+//      （pnpm site 會先跑 judge-all 再執行這支）
 //
 // - index.html     所有通過 judge 的聖誕樹
 // - u/<user>.html  交換後：「你收到了 @xxx 的聖誕樹」
@@ -21,6 +22,14 @@ const { values } = parseArgs({
 const esc = ansi.escapeHtml
 const repo = process.env.GITHUB_REPOSITORY
 const rules = await loadRules()
+
+if (!fs.existsSync(values.results)) {
+  console.error(`找不到評測結果：${values.results}`)
+  console.error(
+    '請先執行 node packages/tools/src/judge-all.ts，或直接用 pnpm site（會先評測再產生頁面）',
+  )
+  process.exit(1)
+}
 
 const results = fs
   .readdirSync(values.results)

@@ -138,7 +138,7 @@ node packages/tools/src/exchange.ts --seed <seed>
 ### 開發
 
 ```sh
-pnpm site    # 產生展示頁到 _site/（需先跑 node packages/tools/src/judge-all.ts）
+pnpm site    # 評測所有投稿並產生展示頁到 _site/
 pnpm check   # oxlint + oxfmt + tsc
 pnpm test    # 工具單元測試 + judge 沙箱測試（需要 Docker）
 pnpm fmt     # 格式化

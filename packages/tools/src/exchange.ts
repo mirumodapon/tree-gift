@@ -10,7 +10,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
-import { writeExchange, type JudgeResult } from '@gift/judge'
+import { REPO_ROOT, writeExchange, type JudgeResult } from '@gift/judge'
 import { pair } from './pair.ts'
 
 const MENTIONS_PER_COMMENT = 40
@@ -18,9 +18,9 @@ const MENTIONS_PER_COMMENT = 40
 const { values } = parseArgs({
   options: {
     seed: { type: 'string' },
-    results: { type: 'string', default: 'out/results' },
+    results: { type: 'string', default: path.join(REPO_ROOT, 'out/results') },
     'site-url': { type: 'string', default: '' },
-    'out-dir': { type: 'string', default: 'out' },
+    'out-dir': { type: 'string', default: path.join(REPO_ROOT, 'out') },
   },
 })
 if (!values.seed) {

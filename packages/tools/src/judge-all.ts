@@ -11,7 +11,7 @@ import { judge, loadRules, REPO_ROOT } from '@gift/judge'
 
 const { values } = parseArgs({
   options: {
-    out: { type: 'string', default: 'out/results' },
+    out: { type: 'string', default: path.join(REPO_ROOT, 'out/results') },
     concurrency: { type: 'string', default: '1' },
   },
 })
