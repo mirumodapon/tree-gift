@@ -58,6 +58,7 @@ jobs:
       issues: write
       pages: write
       id-token: write
+      actions: write
     uses: ./.github/workflows/exchange.yml
 
   pages:

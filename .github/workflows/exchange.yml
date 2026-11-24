@@ -1,5 +1,6 @@
 # 🎁 交換！截止後由管理員手動執行；EVENT_STATE 為 TIME / TIME_SYNC 時由 schedule.yml 在截止後自動執行。
-# 重新評測 → 用公開 seed 配對 → commit exchange.json → 開公告 issue → 更新展示頁
+# 重新評測 → 用公開 seed 配對 → commit exchange.json → 建立 seed 的 tag → 開公告 issue → 更新展示頁
+# → 停用 ci 以外的 workflow（活動結束：不再評測 PR、不再部署或交換；要恢復可到 Actions 頁面重新啟用）
 # TIME / TIME_SYNC 的 seed 固定為截止前 main 上最後一個 commit 的 sha，不能另外指定。
 name: Exchange
 
@@ -16,6 +17,7 @@ permissions:
   issues: write
   pages: write
   id-token: write
+  actions: write
 
 concurrency:
   group: exchange
@@ -87,3 +89,21 @@ jobs:
   pages:
     needs: exchange
     uses: ./.github/workflows/pages.yml
+
+  # 網站部署成功後才停用；部署失敗時維持啟用，方便重跑
+  retire:
+    needs: pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Disable workflows except ci
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          for wf in review.yml pages.yml exchange.yml schedule.yml; do
+            gh workflow disable "$wf"
+            echo "已停用 $wf"
+          done
