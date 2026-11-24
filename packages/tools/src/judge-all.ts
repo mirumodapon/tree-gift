@@ -1,0 +1,41 @@
+// 評測 submissions/ 底下所有投稿，每人一個 <out>/<user>.json。
+// 用法：node packages/tools/src/judge-all.ts [--out out/results] [--concurrency 2]
+
+import fs from 'node:fs'
+import path from 'node:path'
+import { parseArgs } from 'node:util'
+import { judge, loadRules, REPO_ROOT } from '@gift/judge'
+
+const { values } = parseArgs({
+  options: {
+    out: { type: 'string', default: 'out/results' },
+    concurrency: { type: 'string', default: '2' },
+  },
+})
+
+const rules = await loadRules()
+const subRoot = path.join(REPO_ROOT, 'submissions')
+const users = fs
+  .readdirSync(subRoot, { withFileTypes: true })
+  .filter((d) => d.isDirectory())
+  .map((d) => d.name)
+  .toSorted()
+
+fs.rmSync(values.out, { recursive: true, force: true })
+fs.mkdirSync(values.out, { recursive: true })
+
+const queue = [...users]
+let passed = 0
+async function worker(): Promise<void> {
+  for (let user = queue.shift(); user; user = queue.shift()) {
+    const res = await judge(path.join(subRoot, user), rules, user)
+    fs.writeFileSync(path.join(values.out, `${user}.json`), JSON.stringify(res, null, 2) + '\n')
+    if (res.ok) passed++
+    const why = res.errors.map((e) => e.code).join(', ')
+    console.log(`${res.ok ? '✅' : '❌'} ${user} ${res.languageName ?? ''} ${why}`)
+  }
+}
+
+const n = Math.max(1, Number.parseInt(values.concurrency, 10) || 1)
+await Promise.all(Array.from({ length: n }, worker))
+console.log(`\n${passed}/${users.length} 份投稿通過`)
