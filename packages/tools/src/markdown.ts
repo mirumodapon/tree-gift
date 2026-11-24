@@ -23,9 +23,15 @@ export function inlineCode(text: string): string {
   return `${ticks} ${oneLine} ${ticks}`
 }
 
-/** 一般文字：跳脫 Markdown/HTML 符號並壓成一行（可放進表格）。 */
+/**
+ * 一般文字：跳脫 Markdown/HTML 符號並壓成一行（可放進表格）。
+ * 在 @ 後面插入零寬空格，避免檔名之類的內容 tag 到其他人。
+ */
 export function plain(text: string): string {
-  return text.replace(/[\r\n]+/g, ' ').replace(/[\\`*_[\]<>|#!~]/g, (c) => `\\${c}`)
+  return text
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/[\\`*_[\]<>|#!~]/g, (c) => `\\${c}`)
+    .replaceAll('@', '@\u200b')
 }
 
 /** 截斷過長的文字，保留前 maxLines 行與 maxChars 字元。 */

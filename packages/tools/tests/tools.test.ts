@@ -45,6 +45,10 @@ describe('markdown', () => {
   it('plain 跳脫 HTML 與表格符號', () => {
     assert.equal(plain('<img>|x\ny'), '\\<img\\>\\|x y')
   })
+
+  it('plain 讓 @mention 失效', () => {
+    assert.equal(plain('@octocat'), '@\u200boctocat')
+  })
 })
 
 describe('pair', () => {
