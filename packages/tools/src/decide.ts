@@ -6,12 +6,16 @@ export type Action =
   | 'merge'
   /** 未通過：留言並關閉 PR */
   | 'reject'
+  /** 投稿已截止：不評測，留言並關閉 PR */
+  | 'closed'
   /** judge 本身出錯：留言，不 merge 也不關閉，等主辦方處理 */
   | 'error'
   /** 不自動處理，等 maintainer review（一般功能性 PR、draft、bot） */
   | 'skip'
 
 export interface DecideInput {
+  /** 是否接受投稿（ACCEPT_SUBMISSIONS） */
+  acceptSubmissions: boolean
   draft: boolean
   /** PR 是否以預設分支為目標 */
   targetsDefault: boolean
@@ -30,7 +34,8 @@ export interface Decision {
 }
 
 /** 不需要評測就能決定的情況；回傳 null 代表這是要評測的投稿 PR。 */
-export function precheck({ draft, targetsDefault, userType, paths }: DecideInput): Decision | null {
+export function precheck(input: DecideInput): Decision | null {
+  const { acceptSubmissions, draft, targetsDefault, userType, paths } = input
   if (paths.outside.length) {
     return {
       action: 'skip',
@@ -41,8 +46,14 @@ export function precheck({ draft, targetsDefault, userType, paths }: DecideInput
   if (!targetsDefault) return { action: 'skip', pass: true, reason: '不是以預設分支為目標' }
   if (draft) return { action: 'skip', pass: true, reason: 'draft PR' }
   if (userType === 'Bot') return { action: 'skip', pass: true, reason: 'bot PR' }
+  if (!acceptSubmissions) return { action: 'closed', pass: false, reason: '投稿已截止' }
   if (paths.foreign.length) return { action: 'reject', pass: false, reason: '修改了其他人的投稿' }
   return null
+}
+
+/** 解析 ACCEPT_SUBMISSIONS：只有 true / 1 / yes / on 才收件，未設定或其他值一律視為停止收件。 */
+export function parseAcceptSubmissions(value: string | undefined): boolean {
+  return ['true', '1', 'yes', 'on'].includes((value ?? '').trim().toLowerCase())
 }
 
 export function decide(input: DecideInput): Decision {

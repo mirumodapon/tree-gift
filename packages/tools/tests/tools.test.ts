@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import type { ErrorCode, JudgeResult } from '@gift/judge'
 import { checkPaths } from '../src/check-paths.ts'
-import { decide, precheck, type DecideInput } from '../src/decide.ts'
+import { decide, parseAcceptSubmissions, precheck, type DecideInput } from '../src/decide.ts'
 import { codeBlock, inlineCode, plain } from '../src/markdown.ts'
 import { pair } from '../src/pair.ts'
 import { COMMENT_MARKER, renderComment } from '../src/render-comment.ts'
@@ -108,6 +108,12 @@ describe('renderComment', () => {
     assert.doesNotMatch(md, /找不到 judge 結果/)
   })
 
+  it('closed 時說明已截止，不顯示找不到結果', () => {
+    const md = renderComment({ action: 'closed', author: 'alice', foreign: [], result: null })
+    assert.match(md, /投稿已截止/)
+    assert.doesNotMatch(md, /找不到 judge 結果/)
+  })
+
   it('error 時說明不是參加者的問題', () => {
     const md = renderComment({ action: 'error', author: 'alice', foreign: [], result: null })
     assert.match(md, /judge 發生錯誤/)
@@ -132,6 +138,7 @@ describe('decide', () => {
     errors: [{ code, message: '' }],
   })
   const base: DecideInput = {
+    acceptSubmissions: true,
     draft: false,
     targetsDefault: true,
     userType: 'User',
@@ -175,6 +182,25 @@ describe('decide', () => {
   it('judge 內部錯誤或沒有結果 → error，不關閉 PR', () => {
     assert.equal(decide({ ...base, result: fail('internal_error') }).action, 'error')
     assert.equal(decide({ ...base, result: null }).action, 'error')
+  })
+
+  it('停止收件時，投稿 PR 不評測直接 closed', () => {
+    const d = precheck({ ...base, acceptSubmissions: false, result: null })
+    assert.equal(d?.action, 'closed')
+    assert.ok(!d?.pass)
+  })
+
+  it('停止收件不影響一般功能性 PR', () => {
+    const paths = { outside: ['rules.ts'], foreign: [] }
+    assert.equal(decide({ ...base, acceptSubmissions: false, paths }).action, 'skip')
+  })
+
+  it('ACCEPT_SUBMISSIONS 只有明確開啟才收件，未設定視為停止收件', () => {
+    for (const v of ['true', 'TRUE', ' 1 ', 'yes', 'on'])
+      assert.equal(parseAcceptSubmissions(v), true)
+    for (const v of [undefined, '', 'false', '0', 'no', 'off', 'maybe']) {
+      assert.equal(parseAcceptSubmissions(v), false)
+    }
   })
 
   it('draft、bot、非預設分支 → skip', () => {

@@ -61,7 +61,7 @@ if (d.action === 'merge') {
     ref: env('DEFAULT_BRANCH'),
   })
   console.log(`PR #${prNumber} 已 merge，並觸發展示頁更新`)
-} else if (d.action === 'reject') {
+} else if (d.action === 'reject' || d.action === 'closed') {
   await gh.request('PATCH', `/pulls/${prNumber}`, { state: 'closed' })
   console.log(`PR #${prNumber} 已關閉：${d.reason}`)
 } else {

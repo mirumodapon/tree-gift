@@ -86,13 +86,14 @@ rules.ts   所有規則與語言設定
 
 ### PR 怎麼處理
 
-| PR 的變更                                    | 處理                                                  |
-| -------------------------------------------- | ----------------------------------------------------- |
-| 只改 `submissions/<作者>/`                   | 評測：通過 → 留言並 squash merge；未通過 → 留言並關閉 |
-| 改到別人的 `submissions/<其他人>/`           | 不評測，留言並關閉                                    |
-| 改到 `submissions/` 以外的任何檔案（含混合） | 一般功能性 PR：不評測、不留言，等 maintainer review   |
-| draft、bot、目標不是預設分支                 | 不處理                                                |
-| judge 本身出錯（例如 Docker 失敗）           | 留言，不 merge 也不關閉，等主辦方處理                 |
+| PR 的變更                                               | 處理                                                  |
+| ------------------------------------------------------- | ----------------------------------------------------- |
+| 停止收件時（`ACCEPT_SUBMISSIONS` 不是 `true`）的投稿 PR | 不評測，留言「投稿已截止」並關閉                      |
+| 只改 `submissions/<作者>/`                              | 評測：通過 → 留言並 squash merge；未通過 → 留言並關閉 |
+| 改到別人的 `submissions/<其他人>/`                      | 不評測，留言並關閉                                    |
+| 改到 `submissions/` 以外的任何檔案（含混合）            | 一般功能性 PR：不評測、不留言，等 maintainer review   |
+| draft、bot、目標不是預設分支                            | 不處理                                                |
+| judge 本身出錯（例如 Docker 失敗）                      | 留言，不 merge 也不關閉，等主辦方處理                 |
 
 ### 沙箱
 
@@ -117,12 +118,15 @@ rules.ts   所有規則與語言設定
    - 一般功能性 PR 的 `judge` 會直接通過（不評測），由 maintainer review 後手動合併
    - **不要**開「Require approvals」：自動 merge 用的是 `GITHUB_TOKEN`，要求 review 會讓它無法合併
    - **不要**開「Require branches to be up to date」：投稿 PR 之間互不衝突，開了反而會卡住
-3. （選填）**Settings → Variables**：設定 `SITE_URL` 覆寫展示頁網址
+3. **Settings → Secrets and variables → Actions → Variables**：
+   - `ACCEPT_SUBMISSIONS`：是否接受投稿。**設為 `true` 才收件**；未設定或其他值都視為停止收件，
+     投稿 PR 不會評測，會留言「投稿已截止」並關閉（一般功能性 PR 不受影響）。開放投稿前記得設定！
+   - `SITE_URL`（選填）：覆寫展示頁網址
 4. 如果 `main` 禁止直接 push，請允許 GitHub Actions 推送，或改用 PR 合併 `exchange.json`
 
 ### 交換
 
-截止後到 **Actions → Exchange → Run workflow**，輸入事先公告的 seed（例如截止後第一個比特幣區塊的 hash，或直播抽籤的結果）。
+截止時先把 repo variable `ACCEPT_SUBMISSIONS` 改成 `false`（或刪除）停止收件，再到 **Actions → Exchange → Run workflow**，輸入事先公告的 seed（例如截止後第一個比特幣區塊的 hash，或直播抽籤的結果）。
 配對方式是用 seed 洗牌後排成一個環，每個人送給下一位，保證不會抽到自己。任何人都能用同一個 seed 重算驗證：
 
 ```sh

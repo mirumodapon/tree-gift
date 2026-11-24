@@ -18,12 +18,14 @@ export interface CommentInput {
 const TITLES: Record<CommentInput['action'], string> = {
   merge: '✅ 通過，已自動合併 🎁',
   reject: '❌ 未通過，PR 已關閉',
+  closed: '🔒 投稿已截止，PR 已關閉',
   error: '⚠️ judge 發生錯誤',
 }
 
 const FOOTERS: Record<CommentInput['action'], string> = {
   merge: '感謝參加！截止後會隨機配對交換，記得 Watch 這個 repo 的 Issues 才收得到通知。',
   reject: '請依上面的說明修正後，再開一個新的 PR（可以沿用同一個分支）。',
+  closed: '這次活動已經停止收件，謝謝你的參與！🎄',
   error: '這不是你的問題，主辦方會盡快處理。',
 }
 
@@ -69,7 +71,7 @@ export function renderComment({ action, author, foreign, result, runUrl }: Comme
         '',
       )
     }
-  } else if (!foreign.length) {
+  } else if (!foreign.length && action !== 'closed') {
     out.push('找不到 judge 結果。', '')
   }
 
