@@ -84,8 +84,8 @@ const trees = computed(() =>
 
 .grid {
   display: grid;
-  gap: 20px;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
 }
 
 .notice {
