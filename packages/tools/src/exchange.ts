@@ -2,9 +2,11 @@
 // 用法：node packages/tools/src/exchange.ts [--seed <公開 seed>] [--fallback-seed <sha>]
 //        [--results out/results] [--site-url https://owner.github.io/repo] [--out-dir out]
 //
-// seed：
-//   EVENT_STATE 為 TIME / TIME_SYNC → 固定用截止前 main 上最後一個 commit 的 sha（見 seed.ts），不能另外指定
-//   其他模式                        → --seed，沒有就用 --fallback-seed（workflow 傳入目前的 commit sha）
+// seed（依序）：
+//   已經交換過（有 exchange 或 exchange-<seed> tag）→ 沿用 tag 上的 seed，不能另外指定（見 seed.ts）
+//   EVENT_STATE 為 TIME / TIME_SYNC                 → 截止前 main 上最後一個 commit 的 sha，不能另外指定
+//   其他模式                                         → --seed，沒有就用 --fallback-seed（workflow 傳入目前的 commit sha）
+// 也會寫出 <out-dir>/seed-tag.json，workflow 據此建立記錄 seed 的 tag。
 //
 // 產出：
 //   exchange.json          配對結果（commit 回 repo，展示頁會讀）
@@ -16,7 +18,7 @@ import path from 'node:path'
 import { parseArgs } from 'node:util'
 import { currentEvent, loadRules, REPO_ROOT, writeExchange, type JudgeResult } from '@gift/judge'
 import { pair } from './pair.ts'
-import { deadlineSeed, deadlineSeedCommand } from './seed.ts'
+import { deadlineSeed, deadlineSeedCommand, seedTag, taggedSeed } from './seed.ts'
 
 const { values } = parseArgs({
   options: {
@@ -37,8 +39,15 @@ if (event.policy.acceptSubmissions) {
   process.exit(1)
 }
 
+const tagged = taggedSeed(REPO_ROOT)
 let seed: string
-if (event.timed) {
+if (tagged) {
+  if (values.seed && values.seed !== tagged) {
+    console.error(`已經交換過，seed 固定為 tag 上記錄的 ${tagged}，不能另外指定`)
+    process.exit(2)
+  }
+  seed = tagged
+} else if (event.timed) {
   seed = deadlineSeed(event.schedule!.end, REPO_ROOT)
   if (values.seed && values.seed !== seed) {
     console.error(
@@ -50,6 +59,15 @@ if (event.timed) {
   seed = (values.seed || values['fallback-seed'])!
 } else {
   console.error('請用 --seed 指定公開的 seed')
+  process.exit(2)
+}
+
+// 自訂 seed 要能當 tag 名稱；在配對與寫檔之前檢查，失敗時什麼都不會留下
+let tag: ReturnType<typeof seedTag>
+try {
+  tag = seedTag(seed, REPO_ROOT)
+} catch (e) {
+  console.error((e as Error).message)
   process.exit(2)
 }
 
@@ -103,6 +121,7 @@ const issue = (
         '### 怎麼配對的',
         '',
         '用公開的 seed 把所有通過評測的參加者洗牌後排成一個環，每個人把樹送給下一位，所以不會抽到自己。',
+        `這次的 seed 記錄在 tag \`${tag.name}\`，之後重新交換也會沿用同一個 seed。`,
         '',
         ...seedNote,
       ]
@@ -120,6 +139,7 @@ const giftComment = (to: string) =>
 const outDir = values['out-dir']
 fs.mkdirSync(outDir, { recursive: true })
 fs.writeFileSync(path.join(outDir, 'issue.md'), issue + '\n')
+fs.writeFileSync(path.join(outDir, 'seed-tag.json'), JSON.stringify(tag) + '\n')
 for (const old of fs.readdirSync(outDir).filter((f) => /^gift-\d+\.md$/.test(f))) {
   fs.rmSync(path.join(outDir, old))
 }

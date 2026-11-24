@@ -205,6 +205,13 @@ pnpm judge --all
 node packages/tools/src/exchange.ts --seed <seed>
 ```
 
+**seed 記錄在 tag 上**：交換完成後會建立 tag 記錄這次的 seed，之後再執行 Exchange（不論手動或自動）一律沿用 tag 上的 seed，輸入其他 seed 會被拒絕：
+
+- seed 是 commit sha（`TIME` 模式，或手動模式留空）→ 在那個 commit 建立 tag `exchange`
+- 自訂 seed → 在交換的 commit 建立 tag `exchange-<seed>`，所以自訂 seed 必須能當作 tag 名稱（不能有空白、`~^:?*[\` 等字元）
+
+要換 seed 重新交換，得先刪掉這個 tag（`git push origin :refs/tags/<tag>`）。
+
 還在收件中時，交換會被拒絕。配對方式是用 seed 洗牌後排成一個環，每個人送給下一位，保證不會抽到自己。通過評測的不到兩人時不會配對，只會公告無法交換。
 
 ### 開發

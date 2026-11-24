@@ -27,8 +27,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          # TIME 模式要從完整歷史找出截止前最後一個 commit
+          # TIME 模式要從完整歷史找出截止前最後一個 commit；也要拿到記錄 seed 的 tag
           fetch-depth: 0
+          fetch-tags: true
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
         with:
@@ -57,6 +58,19 @@ jobs:
           git add exchange.json
           git commit -m "chore: exchange trees (seed $SEED)"
           git push
+
+      # 記錄這次的 seed：commit sha → tag exchange；自訂 seed → tag exchange-<seed>（指向上面的 commit）
+      # 之後再交換一律沿用 tag 上的 seed（見 packages/tools/src/seed.ts）
+      - name: Tag seed
+        run: |
+          TAG_NAME=$(node -p 'require("./out/seed-tag.json").name')
+          TAG_TARGET=$(node -p 'require("./out/seed-tag.json").target || "HEAD"')
+          if git rev-parse -q --verify "refs/tags/$TAG_NAME" >/dev/null; then
+            echo "tag $TAG_NAME 已存在"
+          else
+            git tag "$TAG_NAME" "$TAG_TARGET"
+            git push origin "refs/tags/$TAG_NAME"
+          fi
 
       - name: Announce
         env:
