@@ -1,0 +1,27 @@
+{
+  "name": "gift",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "judge": "node packages/judge/src/cli.ts",
+    "test": "pnpm -r test",
+    "lint": "oxlint",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "typecheck": "tsc --noEmit && pnpm -r typecheck",
+    "check": "pnpm lint && pnpm fmt:check && pnpm typecheck"
+  },
+  "dependencies": {
+    "@gift/judge": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "oxfmt": "0.76.0",
+    "oxlint": "1.91.0",
+    "typescript": "7.0.2"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@12.18.0"
+}

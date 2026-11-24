@@ -1,0 +1,11 @@
+{
+  "name": "@gift/tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@gift/judge": "workspace:*"
+  }
+}

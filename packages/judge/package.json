@@ -1,0 +1,15 @@
+{
+  "name": "@gift/judge",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node tests/run-tests.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "get-east-asian-width": "1.4.0"
+  }
+}
