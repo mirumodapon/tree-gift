@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { IconCode, IconGift } from '@tabler/icons-vue'
+import { IconCode, IconGift, IconPlayerPlay } from '@tabler/icons-vue'
 import { withBase } from 'vitepress'
 import type { Tree } from '../../gift.data.ts'
+import AnsiPlayer from './AnsiPlayer.vue'
 
 defineProps<{ tree: Tree }>()
 </script>
@@ -18,9 +19,23 @@ defineProps<{ tree: Tree }>()
         loading="lazy"
       />
       <a class="user" :href="`https://github.com/${tree.user}`">@{{ tree.user }}</a>
-      <span class="lang">{{ tree.languageName }}</span>
+      <span class="lang">
+        <template v-if="tree.animation">
+          <IconPlayerPlay :size="14" /> 動畫 {{ Math.round(tree.animation.duration) }}s ·
+        </template>
+        {{ tree.languageName }}
+      </span>
     </header>
-    <pre class="gift-term" v-html="tree.html" />
+    <AnsiPlayer
+      v-if="tree.animation"
+      class="term-area"
+      :src="withBase(`/casts/${tree.user}.cast`)"
+      :cols="tree.cols || 80"
+      :rows="tree.rows || 1"
+      :poster-time="tree.animation.posterTime"
+      :fallback-html="tree.html"
+    />
+    <pre v-else class="gift-term term-area" v-html="tree.html" />
     <footer>
       <a v-if="tree.giftTo" class="link" :href="withBase(`/gifts/${tree.giftTo}.html`)">
         <IconGift :size="16" /> 送給 @{{ tree.giftTo }}
@@ -69,6 +84,9 @@ footer {
 }
 
 .lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   margin-left: auto;
   color: var(--vp-c-text-3);
   font-size: 13px;
@@ -85,8 +103,11 @@ footer {
   font-variant-numeric: tabular-nums;
 }
 
+.term-area {
+  flex: 1;
+}
+
 .gift-term {
   border-radius: 0;
-  flex: 1;
 }
 </style>

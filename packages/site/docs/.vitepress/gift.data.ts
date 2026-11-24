@@ -12,15 +12,17 @@ import {
   readExchange,
   REPO_ROOT,
   type EventState,
-  type JudgeResult,
 } from '@gift/judge'
 import { defineLoader } from 'vitepress'
+import { publishedResults, RESULTS_DIR } from './results.ts'
 
 export interface Tree {
   user: string
   languageName: string
-  /** 輸出轉成的 HTML（已跳脫，只含顏色 span） */
+  /** 輸出轉成的 HTML（已跳脫，只含顏色 span）；動畫作品是最後一格畫面，作為播放器載入前的預覽 */
   html: string
+  /** 動畫作品才有：播放器設定，動畫內容在 /casts/<user>.cast */
+  animation: { duration: number; truncated: boolean; posterTime: number } | null
   cols: number
   rows: number
   /** 進入點 tree.<ext> 的原始碼 */
@@ -49,6 +51,8 @@ export interface GiftData {
   /** 已合併的投稿數（submissions/ 底下的資料夾數），不公開作品時也會顯示 */
   submissionCount: number
   rules: {
+    animation: boolean
+    animationSeconds: number
     maxCols: number
     maxRows: number
     maxKB: number
@@ -69,7 +73,6 @@ declare const data: GiftData
 export { data }
 
 const SUBMISSIONS = path.join(REPO_ROOT, 'submissions')
-const RESULTS = process.env.GIFT_RESULTS_DIR ?? path.join(REPO_ROOT, 'out/results')
 
 function submissionUsers(): string[] {
   if (!fs.existsSync(SUBMISSIONS)) return []
@@ -80,43 +83,35 @@ function submissionUsers(): string[] {
 }
 
 function loadTrees(repo: string | null): { trees: Tree[]; exchanged: boolean } {
-  if (!fs.existsSync(RESULTS)) {
-    throw new Error(
-      `EVENT_STATE 要求公開作品，但找不到評測結果 ${RESULTS}。` +
-        '請先執行 node packages/tools/src/judge-all.ts（pnpm site 會自動執行）',
-    )
-  }
   const pairs = readExchange()?.pairs ?? []
   const giftTo = new Map(pairs.map((p) => [p.from, p.to]))
   const giftFrom = new Map(pairs.map((p) => [p.to, p.from]))
 
-  const trees = fs
-    .readdirSync(RESULTS)
-    .filter((f) => f.endsWith('.json'))
-    .map((f) => JSON.parse(fs.readFileSync(path.join(RESULTS, f), 'utf8')) as JudgeResult)
-    .filter((r) => r.ok && r.stdout !== null && r.language)
-    .toSorted((a, b) => a.user.localeCompare(b.user))
-    .map((r): Tree => {
-      const sourceFile = `tree.${r.language}`
-      const file = path.join(SUBMISSIONS, r.user, sourceFile)
-      return {
-        user: r.user,
-        languageName: r.languageName ?? '',
-        html: ansi.toHtml(r.stdout!),
-        cols: r.stats.cols ?? 0,
-        rows: r.stats.rows ?? 0,
-        source: fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '',
-        sourceFile,
-        folderUrl: repo ? `https://github.com/${repo}/tree/main/submissions/${r.user}` : null,
-        giftTo: giftTo.get(r.user) ?? null,
-        giftFrom: giftFrom.get(r.user) ?? null,
-      }
-    })
+  const trees = publishedResults().map((r): Tree => {
+    const sourceFile = `tree.${r.language}`
+    const file = path.join(SUBMISSIONS, r.user, sourceFile)
+    const a = r.animation
+    return {
+      user: r.user,
+      languageName: r.languageName ?? '',
+      html: ansi.toHtml(r.stdout!),
+      animation: a
+        ? { duration: a.duration, truncated: a.truncated, posterTime: a.posterTime }
+        : null,
+      cols: r.stats.cols ?? 0,
+      rows: r.stats.rows ?? 0,
+      source: fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '',
+      sourceFile,
+      folderUrl: repo ? `https://github.com/${repo}/tree/main/submissions/${r.user}` : null,
+      giftTo: giftTo.get(r.user) ?? null,
+      giftFrom: giftFrom.get(r.user) ?? null,
+    }
+  })
   return { trees, exchanged: pairs.length > 0 }
 }
 
 export default defineLoader({
-  watch: [`${RESULTS}/*.json`, `${REPO_ROOT}/exchange.json`, `${REPO_ROOT}/rules.ts`],
+  watch: [`${RESULTS_DIR}/*.json`, `${REPO_ROOT}/exchange.json`, `${REPO_ROOT}/rules.ts`],
   async load(): Promise<GiftData> {
     const { state, policy } = currentEvent()
     const rules = await loadRules()
@@ -132,6 +127,8 @@ export default defineLoader({
       repo,
       submissionCount: submissionUsers().length,
       rules: {
+        animation: rules.animation.enabled,
+        animationSeconds: rules.animation.maxSeconds,
         maxCols: rules.output.maxCols,
         maxRows: rules.output.maxRows,
         maxKB: Math.round(rules.output.maxBytes / 1024),

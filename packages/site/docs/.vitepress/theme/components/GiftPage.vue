@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { IconGift } from '@tabler/icons-vue'
 import { computed } from 'vue'
+import { withBase } from 'vitepress'
 import { data } from '../../gift.data.ts'
+import AnsiPlayer from './AnsiPlayer.vue'
 
 const props = defineProps<{ user: string }>()
 const gift = computed(() => data.trees.find((t) => t.giftTo === props.user) ?? null)
@@ -20,7 +22,18 @@ const gift = computed(() => data.trees.find((t) => t.giftTo === props.user) ?? n
         <a :href="`https://github.com/${gift.user}`">@{{ gift.user }}</a>
         · {{ gift.languageName }}
       </p>
-      <pre class="gift-term large" v-html="gift.html" />
+      <AnsiPlayer
+        v-if="gift.animation"
+        class="player"
+        :src="withBase(`/casts/${gift.user}.cast`)"
+        :cols="gift.cols || 80"
+        :rows="gift.rows || 1"
+        :poster-time="gift.animation.posterTime"
+        :fallback-html="gift.html"
+        auto-play
+        font-size="16px"
+      />
+      <pre v-else class="gift-term large" v-html="gift.html" />
       <details>
         <summary>看看原始碼（{{ gift.sourceFile }}）</summary>
         <pre class="source"><code>{{ gift.source }}</code></pre>
@@ -68,6 +81,11 @@ h1 {
 .large {
   font-size: 16px;
   padding: 24px;
+}
+
+.player {
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 details {

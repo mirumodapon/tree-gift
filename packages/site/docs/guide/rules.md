@@ -12,8 +12,29 @@ const r = data.rules
 - 最多 **{{ r.maxCols }} 欄 × {{ r.maxRows }} 行**，總共不超過 **{{ r.maxKB }} KB**
 - 中文與大部分 emoji 算 **2 欄**寬，結尾的空白行不計入行數
 - 輸出必須是合法的 UTF-8
-- <template v-if="r.allowColor">可以用 ANSI 顏色（<code>ESC[...m</code>），但<strong>不能</strong>用游標移動、清畫面、<code>\r</code>、<code>\t</code> 等控制字元，它們會破壞作品牆的顯示</template><template v-else>這次<strong>不能</strong>使用 ANSI 顏色或任何控制字元</template>
+- <template v-if="r.allowColor">可以用 ANSI 顏色（<code>ESC[...m</code>）</template><template v-else>這次<strong>不能</strong>使用 ANSI 顏色</template>
+- 不能使用 <code>\t</code>、響鈴（<code>\a</code>）、超連結與設定標題（OSC）等其他控制碼
 - <template v-if="r.deterministic">每次執行的輸出必須<strong>完全相同</strong>（評測會跑兩次比對），所以不能用亂數或時間</template><template v-else>可以使用亂數，每次輸出不同也沒關係</template>
+
+## 動畫
+
+<template v-if="r.animation">
+
+可以用 ANSI 控制碼做出動畫！只要輸出裡有游標移動，就會被當成動畫作品：
+
+- 可以使用：<code>\r</code>、<code>\b</code>、游標移動（<code>ESC[H</code>、<code>ESC[3A</code> 等）、清除畫面或整行（<code>ESC[2J</code>、<code>ESC[K</code>）、儲存／還原游標、隱藏游標（<code>ESC[?25l</code>）、替代畫面（<code>ESC[?1049h</code>）
+- 程式在 **{{ r.maxCols }} × {{ r.maxRows }}** 的終端機裡執行，超出範圍的內容看不到
+- 動畫最多錄 **{{ r.animationSeconds }} 秒**，可以無限循環，時間到就截斷（不算失敗），網站上會循環播放
+- 動畫必須在 **{{ r.runTimeout }} 秒內開始**（出現第一個游標移動），否則會被當成執行逾時
+- 畫面之間要有延遲（例如 <code>sleep</code>），沒有延遲的動畫會一下子輸出太多而失敗
+- 動畫一樣要每次都相同：評測會跑兩次比對輸出
+
+</template>
+<template v-else>
+
+這次**不開放動畫**，輸出裡不能有游標移動、<code>\r</code>、清畫面等控制碼。
+
+</template>
 
 ## 執行環境
 

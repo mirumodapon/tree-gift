@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { REPO_ROOT } from '@gift/judge'
 import { defineConfig } from 'vitepress'
+import { castsDevServer, writeCasts } from './casts.ts'
 
 const repo = process.env.GITHUB_REPOSITORY
 
@@ -15,6 +16,10 @@ export default defineConfig({
   outDir: path.join(REPO_ROOT, '_site'),
   head: [['link', { rel: 'icon', type: 'image/svg+xml', href: `${base}favicon.svg` }]],
   lastUpdated: false,
+
+  // 動畫作品的 /casts/<user>.cast（不公開作品時不會產生）
+  vite: { plugins: [castsDevServer()] },
+  buildEnd: (site) => writeCasts(site.outDir),
 
   themeConfig: {
     logo: { src: '/favicon.svg', alt: '' },

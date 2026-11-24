@@ -53,7 +53,9 @@ submissions/
 - 資料夾內只能平放一般檔案（不能有子資料夾或連結），最多 20 個檔案、總共 256 KB
 - 5 秒內執行完畢（Java 10 秒），結束代碼要是 0
 - 輸出最多 **80 欄 × 50 行**（中文、emoji 算 2 欄），64 KB 以內
-- 可以用 ANSI 顏色（`ESC[...m`），但不能用游標移動、清畫面、`\r`、`\t` 等控制字元
+- 可以用 ANSI 顏色（`ESC[...m`）
+- 可以做 **ANSI 動畫**：用 `\r`、游標移動（`ESC[H` 等）、清畫面重畫，程式在 80×50 的終端機裡執行，最多錄 10 秒（可無限循環，時間到就截斷），網站上會循環播放；動畫須在 5 秒內開始（見 `examples/animation`）
+- 不能用 `\t`、響鈴、超連結／設定標題（OSC）等其他控制碼
 - 每次執行的輸出必須相同（不能用亂數）
 - PR 只能新增或修改你自己的 `submissions/<你的 ID>/`（改到別人的投稿會被關閉；改到 `submissions/` 以外的檔案則視為一般 PR，等主辦方 review，不會評測）
 
@@ -164,4 +166,4 @@ pnpm fmt     # 格式化
 
 TypeScript 直接由 Node.js 執行（type stripping），不需要 build。
 
-調整規則請改 `rules.ts`；新增語言只需加一筆 image 與指令，再到 `examples/` 加一個範例並確認能通過。
+調整規則請改 `rules.ts`（包含是否允許動畫 `animation.enabled`、動畫長度上限 `animation.maxSeconds`）；新增語言只需加一筆 image 與指令，再到 `examples/` 加一個範例並確認能通過。

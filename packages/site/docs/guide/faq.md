@@ -26,6 +26,25 @@ import { data } from '../.vitepress/gift.data.ts'
 
 <template v-if="data.publishTrees">現在就可以，到<a href="../gallery.html">作品牆</a>看看！</template><template v-else>依活動安排，作品會在之後公開到<a href="../gallery.html">作品牆</a>。</template>
 
+## 可以做動畫嗎？
+
+<template v-if="data.rules.animation">
+
+可以！用游標移動（例如 <code>\r</code> 或 <code>ESC[H</code>）重畫畫面就會被當成動畫，網站上會循環播放，最長錄 {{ data.rules.animationSeconds }} 秒。詳細規則見<a href="./rules.html#動畫">規則</a>。
+
+PR 留言裡只會顯示動畫的最後一格，完整的動畫要等作品公開後到網站上看。
+
+</template>
+<template v-else>
+
+這次不開放動畫。
+
+</template>
+
+## 我的動畫在終端機裡正常，為什麼評測時畫面都擠在一起？
+
+評測是在真的終端機（pty）裡執行，緩衝行為和你的終端機一樣。常見原因是畫面之間沒有 <code>sleep</code>，或是用 <code>print(..., end="")</code> 沒有換行也沒有 flush，輸出要等到換行才會送出。
+
 ## 交換怎麼配對？會抽到自己嗎？
 
 截止後，主辦方用一個事先公告的公開 seed，把所有通過評測的參加者洗牌後排成一個環，每個人把樹送給下一位，所以**不會抽到自己**。

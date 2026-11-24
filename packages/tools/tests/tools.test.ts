@@ -94,6 +94,18 @@ describe('renderComment', () => {
     assert.ok(!md.includes('\x1b'))
   })
 
+  it('動畫顯示最後一格與長度', () => {
+    const animation = { cast: '', duration: 9.9, truncated: true, posterTime: 9.9 }
+    const md = renderComment({
+      action: 'merge',
+      author: 'alice',
+      foreign: [],
+      result: { ...result, stdout: '  *\n ***', animation },
+    })
+    assert.match(md, /動畫 9\.9 秒，已截斷/)
+    assert.match(md, /```\n  \*\n \*\*\*\n```/)
+  })
+
   it('改到別人的投稿時列出路徑與重新投稿方式', () => {
     const md = renderComment({
       action: 'reject',

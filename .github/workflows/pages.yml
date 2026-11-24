@@ -21,7 +21,9 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  # 不取消進行中的部署：收件期間 merge 很頻繁，取消的話網站可能一直部署不完。
+  # GitHub 只會保留一個排隊中的 run，較新的會取代較舊的。
+  cancel-in-progress: false
 
 jobs:
   build:

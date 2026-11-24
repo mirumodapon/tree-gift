@@ -61,7 +61,18 @@ export function renderComment(input: CommentInput): string {
       )
     }
     if (result.stdout) {
-      out.push('### 輸出預覽', codeBlock(truncate(ansi.stripSgr(result.stdout), 80, 12_000)), '')
+      const anim = result.animation
+      if (anim) {
+        const cut = anim.truncated ? '，已截斷' : ''
+        out.push(
+          `### 輸出預覽（動畫 ${num(anim.duration)} 秒${cut}，這裡顯示最後一格）`,
+          '動畫會在作品公開後於活動網站上播放。',
+          '',
+        )
+      } else {
+        out.push('### 輸出預覽')
+      }
+      out.push(codeBlock(truncate(ansi.stripSgr(result.stdout), 80, 12_000)), '')
     }
     if (result.stderr.trim()) {
       out.push(

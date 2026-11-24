@@ -20,7 +20,7 @@ features:
   # icon 皆來自 Tabler Icons（MIT）
   - icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8l-4 4l4 4"/><path d="M17 8l4 4l-4 4"/><path d="M14 4l-4 16"/></svg>'
     title: 寫一支程式
-    details: 用你喜歡的語言，把聖誕樹印到 stdout。可以加顏色、裝飾，甚至用中文和 emoji。
+    details: 用你喜歡的語言，把聖誕樹印到 stdout。可以加顏色、裝飾、中文和 emoji，甚至做成動畫。
   - icon: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2l0 -4"/><path d="M12 2v2"/><path d="M9 12v9"/><path d="M15 12v9"/><path d="M5 16l4 -2"/><path d="M15 14l4 2"/><path d="M9 18h6"/><path d="M10 8v.01"/><path d="M14 8v.01"/></svg>'
     title: 自動評測
     details: 開 PR 後機器人會在沙箱裡執行你的程式，通過就自動合併，沒通過會告訴你原因。
