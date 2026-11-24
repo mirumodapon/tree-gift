@@ -207,6 +207,8 @@ node packages/tools/src/exchange.ts --seed <seed>
 
 **交換完成後會停用 `ci` 以外的 workflow**（`review`、`pages`、`exchange`、`schedule`）：網站部署成功後，Exchange workflow 最後一步會把它們停用，之後不再評測 PR、不再部署網站或交換。檔案仍然留在 repo 裡；要恢復（例如重新交換或重新部署），到 **Actions** 頁面逐一按 **Enable workflow**。部署失敗時不會停用，修正後可以直接重跑。
 
+**已經有 `exchange.json` 時不會重新配對**：Exchange workflow（不論手動或自動）會直接用既有的結果重新部署網站，不評測、不 commit、也不發公告。要重新交換，先從 `main` 刪掉 `exchange.json`。
+
 還在收件中時，交換會被拒絕。配對方式是用 seed 洗牌後排成一個環，每個人送給下一位，保證不會抽到自己。通過評測的不到兩人時不會配對，只會公告無法交換。
 
 ### 開發

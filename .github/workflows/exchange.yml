@@ -1,5 +1,6 @@
 # 🎁 交換！截止後由管理員手動執行；EVENT_STATE 為 TIME / TIME_SYNC 時由 schedule.yml 在截止後自動執行。
-# 重新評測 → 用公開 seed 配對 → commit exchange.json → 建立 seed 的 tag → 開公告 issue → 更新展示頁
+# 重新評測 → 用公開 seed 配對 → commit exchange.json → 開公告 issue → 更新展示頁
+# 已經有 exchange.json 時不重新配對，直接用既有的結果重新部署網站（刪掉 exchange.json 才會重新交換）。
 # → 停用 ci 以外的 workflow（活動結束：不再評測 PR、不再部署或交換；要恢復可到 Actions 頁面重新啟用）
 # TIME / TIME_SYNC 的 seed 固定為截止前 main 上最後一個 commit 的 sha，不能另外指定。
 name: Exchange
@@ -31,15 +32,28 @@ jobs:
         with:
           # TIME 模式要從完整歷史找出截止前最後一個 commit
           fetch-depth: 0
+
+      - name: Check existing exchange
+        id: existing
+        run: |
+          if [ -f exchange.json ]; then
+            echo "已有 exchange.json，沿用既有的交換結果，只重新部署網站"
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: node packages/tools/src/judge-all.ts --out out/results
+      - if: steps.existing.outputs.found == 'false'
+        run: node packages/tools/src/judge-all.ts --out out/results
 
       - name: Pair
+        if: steps.existing.outputs.found == 'false'
         env:
           SEED_INPUT: ${{ inputs.seed }}
           SITE_URL: ${{ vars.SITE_URL }}
@@ -53,6 +67,7 @@ jobs:
           echo "SEED=$(node -p 'require("./exchange.json").seed')" >> "$GITHUB_ENV"
 
       - name: Commit exchange.json
+        if: steps.existing.outputs.found == 'false'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -61,6 +76,7 @@ jobs:
           git push
 
       - name: Announce
+        if: steps.existing.outputs.found == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
