@@ -6,7 +6,8 @@ import { replay, toAsciicast, type CastEvent } from './terminal.ts'
 import type { ErrorCode, JudgeResult, Rules } from './types.ts'
 
 export const LOGIN_RE = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/
-export type Fail = (code: ErrorCode, message: string) => void
+/** 評測訊息只提供繁中與英文 */
+export type Fail = (code: ErrorCode, message: string, messageEn: string) => void
 
 /**
  * 投稿格式：submissions/<user>/tree.<ext> 為進入點，其他檔案（模組、標頭檔、資料）放在同一層。
@@ -29,16 +30,40 @@ export function findEntry(dir: string, rules: Rules, fail: Fail): string | null 
     if (m && Object.hasOwn(rules.languages, m[1]!)) entries.push(name)
   }
   const { maxFiles, maxTotalBytes } = rules.sandbox
-  if (bad.length) fail('unexpected_file', `只能放一般檔案，不能有子資料夾或連結：${bad.join(', ')}`)
-  if (files > maxFiles) fail('too_many_files', `共 ${files} 個檔案，上限 ${maxFiles}`)
-  if (bytes > maxTotalBytes) fail('too_large', `檔案總大小 ${bytes} bytes，上限 ${maxTotalBytes}`)
+  if (bad.length) {
+    fail(
+      'unexpected_file',
+      `只能放一般檔案，不能有子資料夾或連結：${bad.join(', ')}`,
+      `only regular files are allowed, no subfolders or links: ${bad.join(', ')}`,
+    )
+  }
+  if (files > maxFiles)
+    fail(
+      'too_many_files',
+      `共 ${files} 個檔案，上限 ${maxFiles}`,
+      `${files} files, limit is ${maxFiles}`,
+    )
+  if (bytes > maxTotalBytes)
+    fail(
+      'too_large',
+      `檔案總大小 ${bytes} bytes，上限 ${maxTotalBytes}`,
+      `files total ${bytes} bytes, limit is ${maxTotalBytes}`,
+    )
   if (!entries.length) {
     const names = Object.keys(rules.languages).map((e) => `tree.${e}`)
-    fail('no_entry', `找不到進入點，檔名須為其中之一：${names.join(', ')}`)
+    fail(
+      'no_entry',
+      `找不到進入點，檔名須為其中之一：${names.join(', ')}`,
+      `no entry point found; the file must be named one of: ${names.join(', ')}`,
+    )
     return null
   }
   if (entries.length > 1) {
-    fail('multiple_entries', `只能有一個進入點，發現：${entries.join(', ')}`)
+    fail(
+      'multiple_entries',
+      `只能有一個進入點，發現：${entries.join(', ')}`,
+      `only one entry point is allowed, found: ${entries.join(', ')}`,
+    )
     return null
   }
   return entries[0]!
@@ -70,13 +95,17 @@ async function checkOutput(run: ExecResult, rules: Rules, res: JudgeResult, fail
   try {
     text = new TextDecoder('utf-8', { fatal: true }).decode(run.stdout)
   } catch {
-    fail('invalid_utf8', '輸出不是合法的 UTF-8')
+    fail('invalid_utf8', '輸出不是合法的 UTF-8', 'output is not valid UTF-8')
     return
   }
 
   const scan = ansi.scanControls(text, o.allowColor, rules.animation.enabled)
   if (scan.bad) {
-    fail('bad_control', `輸出含有不允許的內容：${scan.bad}`)
+    fail(
+      'bad_control',
+      `輸出含有不允許的內容：${scan.bad.zh}`,
+      `output contains something not allowed: ${scan.bad.en}`,
+    )
     return
   }
 
@@ -89,7 +118,7 @@ async function checkOutput(run: ExecResult, rules: Rules, res: JudgeResult, fail
       o.maxRows,
     )
     if (!hasInk) {
-      fail('empty_output', '動畫裡沒有出現任何東西')
+      fail('empty_output', '動畫裡沒有出現任何東西', 'nothing appeared in the animation')
       return
     }
     res.stdout = finalFrame
@@ -108,12 +137,12 @@ async function checkOutput(run: ExecResult, rules: Rules, res: JudgeResult, fail
   // 靜態
   res.stdout = text
   if (run.stdout.length > o.maxBytes) {
-    fail('output_too_large', `輸出超過 ${o.maxBytes} bytes`)
+    fail('output_too_large', `輸出超過 ${o.maxBytes} bytes`, `output exceeds ${o.maxBytes} bytes`)
     return
   }
   const lines = ansi.visibleLines(text)
   if (!lines.some((l) => ansi.stripSgr(l).trim())) {
-    fail('empty_output', '沒有輸出任何東西')
+    fail('empty_output', '沒有輸出任何東西', 'no output')
     return
   }
   const widths = lines.map(ansi.displayWidth)
@@ -122,9 +151,19 @@ async function checkOutput(run: ExecResult, rules: Rules, res: JudgeResult, fail
   res.stats.rows = lines.length
   if (cols > o.maxCols) {
     const at = widths.indexOf(cols) + 1
-    fail('too_wide', `最寬一行（第 ${at} 行）寬度 ${cols}，上限 ${o.maxCols}`)
+    fail(
+      'too_wide',
+      `最寬一行（第 ${at} 行）寬度 ${cols}，上限 ${o.maxCols}`,
+      `widest line (line ${at}) is ${cols} columns, limit is ${o.maxCols}`,
+    )
   }
-  if (lines.length > o.maxRows) fail('too_tall', `共 ${lines.length} 行，上限 ${o.maxRows}`)
+  if (lines.length > o.maxRows) {
+    fail(
+      'too_tall',
+      `共 ${lines.length} 行，上限 ${o.maxRows}`,
+      `${lines.length} lines, limit is ${o.maxRows}`,
+    )
+  }
 }
 
 /** 兩次執行是否一致；被截斷的動畫只比對共同的前段 */
@@ -150,18 +189,22 @@ export async function judge(
     stderr: '',
     stats: {},
   }
-  const fail: Fail = (code, message) => res.errors.push({ code, message })
+  const fail: Fail = (code, message, messageEn) => res.errors.push({ code, message, messageEn })
   const finish = () => {
     res.ok = res.errors.length === 0
     return res
   }
 
   if (!LOGIN_RE.test(user)) {
-    fail('bad_folder', `資料夾名稱 ${JSON.stringify(user)} 不是合法的 GitHub ID`)
+    fail(
+      'bad_folder',
+      `資料夾名稱 ${JSON.stringify(user)} 不是合法的 GitHub ID`,
+      `folder name ${JSON.stringify(user)} is not a valid GitHub ID`,
+    )
     return finish()
   }
   if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) {
-    fail('no_folder', `找不到資料夾 submissions/${user}/`)
+    fail('no_folder', `找不到資料夾 submissions/${user}/`, `folder submissions/${user}/ not found`)
     return finish()
   }
 
@@ -178,25 +221,30 @@ export async function judge(
   try {
     box = new Sandbox(lang.image, dir, sb, lang.compile ? sb.compileMemory : sb.memory)
   } catch (e) {
-    fail('internal_error', `無法啟動沙箱：${(e as Error).message}`)
+    const why = (e as Error).message
+    fail('internal_error', `無法啟動沙箱：${why}`, `could not start the sandbox: ${why}`)
     return finish()
   }
   try {
     if (lang.compile) {
       const r = await box.exec(lang.compile, sb.compileTimeout, STDERR_CAP)
       if (r.status === 'timeout') {
-        fail('compile_timeout', `編譯超過 ${sb.compileTimeout} 秒`)
+        fail(
+          'compile_timeout',
+          `編譯超過 ${sb.compileTimeout} 秒`,
+          `compilation took longer than ${sb.compileTimeout} seconds`,
+        )
         return finish()
       }
       if (r.code !== 0) {
         res.stderr = Buffer.concat([r.stdout, r.stderr]).toString('utf8').slice(-STDERR_CAP)
-        fail('compile_error', '編譯失敗')
+        fail('compile_error', '編譯失敗', 'compilation failed')
         return finish()
       }
       try {
         box.limitMemory(sb.memory)
       } catch (e) {
-        fail('internal_error', (e as Error).message)
+        fail('internal_error', (e as Error).message, (e as Error).message)
         return finish()
       }
     }
@@ -221,18 +269,25 @@ export async function judge(
       res.stats.bytes = r.stdout.length
       res.stats.timeMs = Math.max(r.ms, res.stats.timeMs ?? 0)
       if (r.status === 'timeout') {
-        fail('timeout', `執行超過 ${runTimeout} 秒`)
+        fail('timeout', `執行超過 ${runTimeout} 秒`, `ran longer than ${runTimeout} seconds`)
         break
       }
       if (r.status === 'overflow') {
-        const hint = anim.enabled ? '（動畫請在畫面之間加上延遲）' : ''
-        fail('output_too_large', `輸出超過 ${cap} bytes${hint}`)
+        fail(
+          'output_too_large',
+          `輸出超過 ${cap} bytes${anim.enabled ? '（動畫請在畫面之間加上延遲）' : ''}`,
+          `output exceeds ${cap} bytes${anim.enabled ? ' (add a delay between animation frames)' : ''}`,
+        )
         break
       }
       if (r.status !== 'truncated' && r.code !== 0) {
         // 137 = SIGKILL，通常是記憶體爆掉
-        const hint = r.code === 137 ? '（可能超過記憶體限制）' : ''
-        fail('nonzero_exit', `結束代碼 ${r.code}${hint}`)
+        const oom = r.code === 137
+        fail(
+          'nonzero_exit',
+          `結束代碼 ${r.code}${oom ? '（可能超過記憶體限制）' : ''}`,
+          `exit code ${r.code}${oom ? ' (probably exceeded the memory limit)' : ''}`,
+        )
         break
       }
       if (first === null) {
@@ -240,7 +295,11 @@ export async function judge(
         await checkOutput(r, rules, res, fail)
         if (res.errors.length) break
       } else if (!sameOutput(first, r)) {
-        fail('nondeterministic', '兩次執行的輸出不同（本次規則要求每次輸出一致）')
+        fail(
+          'nondeterministic',
+          '兩次執行的輸出不同（本次規則要求每次輸出一致）',
+          'the two runs produced different output (output must be identical every time)',
+        )
       }
     }
   } finally {

@@ -107,7 +107,7 @@ for (const { name, dir, expect } of selected) {
   )
   if (!pass) {
     for (const p of problems) console.log(`     ! ${p}`)
-    for (const e of res.errors) console.log(`     [${e.code}] ${e.message}`)
+    for (const e of res.errors) console.log(`     [${e.code}] ${e.message} / ${e.messageEn}`)
     if (res.stderr) console.log(res.stderr.replace(/^/gm, '     | '))
   }
 }

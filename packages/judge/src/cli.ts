@@ -59,5 +59,7 @@ if (result.stdout !== null && process.stderr.isTTY) process.stderr.write(result.
 process.stderr.write(
   `${result.ok ? '✅ PASS' : '❌ FAIL'} ${result.user} (${result.languageName ?? '-'})\n`,
 )
-for (const e of result.errors) process.stderr.write(`  - [${e.code}] ${e.message}\n`)
+for (const e of result.errors) {
+  process.stderr.write(`  - [${e.code}] ${e.message}\n      ${e.messageEn}\n`)
+}
 process.exit(result.ok ? 0 : 1)

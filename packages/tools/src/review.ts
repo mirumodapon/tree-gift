@@ -80,5 +80,6 @@ fs.writeFileSync(
   JSON.stringify({ pr: prNumber, headSha: pr.head.sha, author, ...decision, body }, null, 2) + '\n',
 )
 console.log(`PR #${prNumber} (@${author})：${decision.action} — ${decision.reason}`)
-for (const e of input.result?.errors ?? []) console.log(`  - [${e.code}] ${e.message}`)
+for (const e of input.result?.errors ?? [])
+  console.log(`  - [${e.code}] ${e.message} / ${e.messageEn}`)
 process.exitCode = decision.pass ? 0 : 1

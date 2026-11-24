@@ -10,9 +10,15 @@ export function stripSgr(text: string): string {
   return text.replace(new RegExp(SGR_SOURCE, 'g'), '')
 }
 
+/** 評測訊息只提供繁中與英文 */
+export interface Bilingual {
+  zh: string
+  en: string
+}
+
 export interface ControlScan {
   /** 第一個不允許的控制序列說明；沒有則為 null */
-  bad: string | null
+  bad: Bilingual | null
   /** 是否含有游標移動等動畫用的序列（有就視為動畫作品） */
   motion: boolean
 }
@@ -35,57 +41,78 @@ const codePoint = (o: number) => `U+${o.toString(16).toUpperCase().padStart(4, '
  */
 export function scanControls(text: string, allowColor: boolean, allowMotion = true): ControlScan {
   let motion = false
-  const fail = (bad: string): ControlScan => ({ bad, motion })
-  const NO_MOTION = '游標移動、\\r 等動畫用的控制碼（本次規則不允許動畫）'
+  const fail = (zh: string, en: string): ControlScan => ({ bad: { zh, en }, motion })
+  const noMotion = () =>
+    fail(
+      '游標移動、\\r 等動畫用的控制碼（本次規則不允許動畫）',
+      'cursor movement, \\r or other animation control codes (animation is not allowed this time)',
+    )
   for (let i = 0; i < text.length; i++) {
     const ch = text[i]!
     const o = ch.codePointAt(0)!
     if (ch === '\n') continue
     if (ch === '\r' || ch === '\b') {
-      if (!allowMotion) return fail(NO_MOTION)
+      if (!allowMotion) return noMotion()
       motion = true
       continue
     }
     if (ch !== '\x1b') {
       if (o < 0x20 || o === 0x7f || (o >= 0x80 && o <= 0x9f))
-        return fail(`控制字元 ${codePoint(o)}`)
+        return fail(`控制字元 ${codePoint(o)}`, `control character ${codePoint(o)}`)
       continue
     }
     const next = text[i + 1]
     if (next === '7' || next === '8') {
       // ESC 7 / ESC 8：儲存／還原游標
-      if (!allowMotion) return fail(NO_MOTION)
+      if (!allowMotion) return noMotion()
       motion = true
       i++
       continue
     }
     if (next !== '[') {
-      if (next === ']') return fail('OSC 序列（ESC ]，例如超連結或設定標題）')
-      return fail(`不支援的 ESC 序列（ESC ${JSON.stringify(next ?? '')}）`)
+      if (next === ']') {
+        return fail(
+          'OSC 序列（ESC ]，例如超連結或設定標題）',
+          'OSC sequence (ESC ], e.g. hyperlinks or setting the title)',
+        )
+      }
+      const esc = `ESC ${JSON.stringify(next ?? '')}`
+      return fail(`不支援的 ESC 序列（${esc}）`, `unsupported ESC sequence (${esc})`)
     }
     // CSI：ESC [ 參數 結尾字元；不接受中間字元
     const m = CSI_RE.exec(text.slice(i, i + 32))
-    if (!m) return fail('不完整或不支援的 CSI 序列')
+    if (!m) return fail('不完整或不支援的 CSI 序列', 'incomplete or unsupported CSI sequence')
     const [seq, params, final] = m as unknown as [string, string, string]
     i += seq.length - 1
     if (final === 'm' && !params.includes('?')) {
-      if (!allowColor) return fail('ANSI 顏色碼（本次規則不允許顏色）')
+      if (!allowColor) {
+        return fail(
+          'ANSI 顏色碼（本次規則不允許顏色）',
+          'ANSI color code (color is not allowed this time)',
+        )
+      }
       continue
     }
     if (params.startsWith('?')) {
       if (MOTION_PRIVATE.has(params + final)) {
-        if (!allowMotion) return fail(NO_MOTION)
+        if (!allowMotion) return noMotion()
         motion = true
         continue
       }
-      return fail(`不支援的終端機模式 ESC[${params}${final}`)
+      return fail(
+        `不支援的終端機模式 ESC[${params}${final}`,
+        `unsupported terminal mode ESC[${params}${final}`,
+      )
     }
     if (MOTION_CSI.has(final) && !params.includes('?')) {
-      if (!allowMotion) return fail(NO_MOTION)
+      if (!allowMotion) return noMotion()
       motion = true
       continue
     }
-    return fail(`不支援的 CSI 序列 ESC[${params}${final}`)
+    return fail(
+      `不支援的 CSI 序列 ESC[${params}${final}`,
+      `unsupported CSI sequence ESC[${params}${final}`,
+    )
   }
   return { bad: null, motion }
 }

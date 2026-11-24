@@ -79,7 +79,9 @@ export function renderComment(input: CommentInput): string {
     if (result.errors.length) {
       out.push(
         '### 問題',
-        ...result.errors.map((e) => `- **${plain(e.code)}**：${plain(e.message)}`),
+        ...result.errors.map(
+          (e) => `- **${plain(e.code)}**：${plain(e.message)}<br>${plain(e.messageEn)}`,
+        ),
         '',
       )
     }

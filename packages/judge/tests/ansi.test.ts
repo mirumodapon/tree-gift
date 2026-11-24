@@ -5,7 +5,7 @@ import { scanControls } from '../src/ansi.ts'
 describe('scanControls', () => {
   it('靜態：換行與顏色', () => {
     assert.deepEqual(scanControls('\x1b[32m*\x1b[0m\n', true), { bad: null, motion: false })
-    assert.match(scanControls('\x1b[32m*', false).bad ?? '', /顏色/)
+    assert.match(scanControls('\x1b[32m*', false).bad?.zh ?? '', /顏色/)
   })
 
   it('動畫：游標移動、清除、\\r、隱藏游標', () => {
@@ -16,7 +16,7 @@ describe('scanControls', () => {
 
   it('關閉動畫時，動畫用的序列判為不允許', () => {
     for (const s of ['\r*', '\x1b[H*', '\x1b[?25l', '\x1b7']) {
-      assert.match(scanControls(s, true, false).bad ?? '', /不允許動畫/, JSON.stringify(s))
+      assert.match(scanControls(s, true, false).bad?.zh ?? '', /不允許動畫/, JSON.stringify(s))
     }
     assert.equal(scanControls('\x1b[32m*\n', true, false).bad, null)
   })

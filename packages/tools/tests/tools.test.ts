@@ -169,7 +169,7 @@ describe('decide', () => {
   const fail = (code: ErrorCode): JudgeResult => ({
     ...ok,
     ok: false,
-    errors: [{ code, message: '' }],
+    errors: [{ code, message: '', messageEn: '' }],
   })
   const base: DecideInput = {
     eventState: 'PROGRESS',

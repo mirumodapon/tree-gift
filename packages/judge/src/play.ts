@@ -22,7 +22,9 @@ if (positionals.length !== 1) {
 const rules = await loadRules(values.rules)
 const dir = resolveDir(positionals[0]!)
 const errors: string[] = []
-const src = findEntry(dir, rules, (code, message) => errors.push(`[${code}] ${message}`))
+const src = findEntry(dir, rules, (code, message, messageEn) =>
+  errors.push(`[${code}] ${message}\n  ${messageEn}`),
+)
 if (!src || errors.length) {
   for (const e of errors) console.error(`❌ ${e}`)
   process.exit(1)

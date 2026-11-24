@@ -86,7 +86,10 @@ export type ErrorCode =
 
 export interface JudgeError {
   code: ErrorCode
+  /** 繁體中文說明 */
   message: string
+  /** English description */
+  messageEn: string
 }
 
 export interface Animation {
