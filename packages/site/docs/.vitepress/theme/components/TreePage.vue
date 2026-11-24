@@ -4,6 +4,7 @@ import {
   IconBrandGithub,
   IconFileCode,
   IconGift,
+  IconLicense,
   IconNotes,
   IconPlayerPlay,
 } from '@tabler/icons-vue'
@@ -18,7 +19,11 @@ const props = defineProps<{
   files: SourceFile[]
   /** 已在 build 時安全轉換過的 README HTML */
   readmeHtml: string | null
+  /** 作者附上的授權檔 */
+  license: { name: string; content: string } | null
 }>()
+
+const repoUrl = data.repo ? `https://github.com/${data.repo}` : null
 
 const tree = computed(() => data.trees.find((t) => t.user === props.user) ?? null)
 </script>
@@ -88,6 +93,27 @@ const tree = computed(() => data.trees.find((t) => t.user === props.user) ?? nul
         </summary>
         <pre class="source"><code>{{ f.content }}</code></pre>
       </details>
+    </section>
+
+    <section>
+      <h2><IconLicense :size="20" /> 授權</h2>
+      <template v-if="license">
+        <p class="license-note">這份作品依作者附上的授權釋出：</p>
+        <details class="file">
+          <summary>
+            <code>{{ license.name }}</code>
+          </summary>
+          <pre class="source"><code>{{ license.content }}</code></pre>
+        </details>
+      </template>
+      <p v-else class="license-note">
+        作者沒有附上授權檔：除了授權本活動展示與使用之外，作者保留所有權利。
+      </p>
+      <p class="license-note">
+        著作權屬於作者 @{{ tree.user }}。詳見
+        <a v-if="repoUrl" :href="`${repoUrl}/blob/main/SUBMISSION_LICENSE.md`">投稿授權條款</a
+        ><span v-else>投稿授權條款</span>。
+      </p>
     </section>
   </article>
 
@@ -265,6 +291,16 @@ summary {
   background: var(--vp-c-brand-soft);
   color: var(--vp-c-brand-1);
   font-size: 12px;
+}
+
+.license-note {
+  margin: 0 0 12px;
+  color: var(--vp-c-text-2);
+  font-size: 14px;
+}
+
+.license-note a {
+  color: var(--vp-c-brand-1);
 }
 
 .source {

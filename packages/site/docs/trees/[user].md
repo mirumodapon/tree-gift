@@ -5,7 +5,12 @@ title: 作品
 
 <div class="tree-page-wrap">
 
-<TreePage :user="$params.user" :files="$params.files" :readme-html="$params.readmeHtml" />
+<TreePage
+  :user="$params.user"
+  :files="$params.files"
+  :readme-html="$params.readmeHtml"
+  :license="$params.license"
+/>
 
 </div>
 

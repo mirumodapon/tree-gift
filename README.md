@@ -8,7 +8,7 @@
 1. Fork 這個 repo
 2. 建立資料夾 `submissions/<你的 GitHub ID>/`（大小寫要完全一致）
 3. 放入程式，進入點檔名為 `tree.<副檔名>`；其他檔案（模組、標頭檔、資料檔、`README.md`）放在同一層
-4. 開 Pull Request，機器人會自動評測：通過就自動合併 🎁，沒通過會留言說明原因並關閉 PR（修正後再開一個新的 PR 即可）
+4. 開 Pull Request（即表示同意[投稿授權條款](SUBMISSION_LICENSE.md)），機器人會自動評測：通過就自動合併 🎁，沒通過會留言說明原因並關閉 PR（修正後再開一個新的 PR 即可）
 5. Watch 這個 repo（Custom → 勾選 Issues），交換結果公告時才會收到通知
 
 ```
@@ -172,3 +172,9 @@ pnpm fmt     # 格式化
 TypeScript 直接由 Node.js 執行（type stripping），不需要 build。
 
 調整規則請改 `rules.ts`（包含是否允許動畫 `animation.enabled`、動畫長度上限 `animation.maxSeconds`）；新增語言只需加一筆 image 與指令，再到 `examples/` 加一個範例並確認能通過。
+
+## 授權
+
+- 本專案（`submissions/` 以外的所有檔案）以 [MIT 授權](LICENSE)釋出
+- `submissions/` 底下的投稿，著作權屬於各自的作者，依作者附上的授權檔（`LICENSE`、`LICENSE.md`、`LICENSE.txt`、`COPYING`）釋出；沒有附授權檔時保留所有權利
+- 開 PR 投稿即表示授權本專案為了舉辦、展示、紀錄與推廣活動使用該作品，詳見 [投稿授權條款](SUBMISSION_LICENSE.md)

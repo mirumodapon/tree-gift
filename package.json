@@ -1,6 +1,7 @@
 {
   "name": "gift",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "judge": "node packages/judge/src/cli.ts",

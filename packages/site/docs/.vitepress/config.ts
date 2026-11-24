@@ -48,7 +48,10 @@ export default defineConfig({
       ],
     },
     socialLinks: repo ? [{ icon: 'github', link: `https://github.com/${repo}` }] : [],
-    footer: { message: 'Merry Christmas & Happy Coding' },
+    footer: {
+      message: '活動程式碼以 MIT 授權釋出 · 投稿作品的著作權屬於各自的作者',
+      copyright: 'Merry Christmas & Happy Coding',
+    },
     outline: { label: '本頁內容' },
     docFooter: { prev: '上一頁', next: '下一頁' },
     darkModeSwitchLabel: '外觀',

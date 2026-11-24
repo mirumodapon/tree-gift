@@ -7,6 +7,9 @@ import { currentEvent, LOGIN_RE, REPO_ROOT, type JudgeResult } from '@gift/judge
 
 export const RESULTS_DIR = process.env.GIFT_RESULTS_DIR ?? path.join(REPO_ROOT, 'out/results')
 
+/** 投稿資料夾裡視為授權檔的檔名（見 SUBMISSION_LICENSE.md） */
+const LICENSE_FILES = new Set(['LICENSE', 'LICENSE.md', 'LICENSE.txt', 'COPYING'])
+
 export interface SourceFile {
   name: string
   content: string
@@ -14,14 +17,14 @@ export interface SourceFile {
   entry: boolean
 }
 
-/** 投稿資料夾裡的文字檔（README.md 另外處理；不是合法 UTF-8 的檔案略過） */
+/** 投稿資料夾裡的文字檔（README.md 與授權檔另外處理；不是合法 UTF-8 的檔案略過） */
 export function submissionFiles(user: string, language: string): SourceFile[] {
   const dir = path.join(REPO_ROOT, 'submissions', user)
   if (!fs.existsSync(dir)) return []
   const entry = `tree.${language}`
   return fs
     .readdirSync(dir, { withFileTypes: true })
-    .filter((d) => d.isFile() && d.name !== 'README.md')
+    .filter((d) => d.isFile() && d.name !== 'README.md' && !LICENSE_FILES.has(d.name))
     .flatMap((d) => {
       try {
         const content = new TextDecoder('utf-8', { fatal: true }).decode(
@@ -33,6 +36,15 @@ export function submissionFiles(user: string, language: string): SourceFile[] {
       }
     })
     .toSorted((a, b) => Number(b.entry) - Number(a.entry) || a.name.localeCompare(b.name))
+}
+
+/** 作者附上的授權檔；沒有時為 null */
+export function submissionLicense(user: string): { name: string; content: string } | null {
+  for (const name of LICENSE_FILES) {
+    const file = path.join(REPO_ROOT, 'submissions', user, name)
+    if (fs.existsSync(file)) return { name, content: fs.readFileSync(file, 'utf8') }
+  }
+  return null
 }
 
 export function submissionReadme(user: string): string | null {
