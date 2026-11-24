@@ -14,6 +14,7 @@ import { data } from '../../gift.data.ts'
 import type { SourceFile } from '../../results.ts'
 import { useI18n } from '../i18n.ts'
 import AnsiPlayer from './AnsiPlayer.vue'
+import TermFit from './TermFit.vue'
 
 const props = defineProps<{
   user: string
@@ -64,18 +65,19 @@ const copyright = computed(() => t.value.copyright(props.user))
       </a>
     </header>
 
-    <AnsiPlayer
-      v-if="tree.animation"
-      class="stage"
-      :src="withBase(`/casts/${tree.user}.cast`)"
-      :cols="tree.cols || 80"
-      :rows="tree.rows || 1"
-      :poster-time="tree.animation.posterTime"
-      :fallback-html="tree.html"
-      font-size="16px"
-      auto-play
-    />
-    <pre v-else class="gift-term stage large" v-html="tree.html" />
+    <TermFit class="stage">
+      <AnsiPlayer
+        v-if="tree.animation"
+        :src="withBase(`/casts/${tree.user}.cast`)"
+        :cols="tree.cols || 80"
+        :rows="tree.rows || 1"
+        :poster-time="tree.animation.posterTime"
+        :fallback-html="tree.html"
+        font-size="16px"
+        auto-play
+      />
+      <pre v-else class="gift-term large" v-html="tree.html" />
+    </TermFit>
 
     <p v-if="tree.giftTo || tree.giftFrom" class="exchange">
       <IconGift :size="18" />
@@ -207,7 +209,6 @@ h1 {
 
 .stage {
   border-radius: 12px;
-  overflow: hidden;
 }
 
 .large {
