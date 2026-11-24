@@ -36,6 +36,8 @@ jobs:
         env:
           SEED_INPUT: ${{ inputs.seed }}
           SITE_URL: ${{ vars.SITE_URL }}
+          # 還在收件中（PROGRESS / PROGRESS_SYNC）時拒絕交換
+          EVENT_STATE: ${{ vars.EVENT_STATE }}
         run: |
           SEED="${SEED_INPUT:-$GITHUB_SHA}"
           OWNER="${GITHUB_REPOSITORY_OWNER,,}"

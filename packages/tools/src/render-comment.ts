@@ -1,4 +1,4 @@
-import { ansi, type JudgeResult } from '@gift/judge'
+import { ansi, closedMessage, type EventState, type JudgeResult } from '@gift/judge'
 import type { Action } from './decide.ts'
 import { codeBlock, inlineCode, plain, truncate } from './markdown.ts'
 
@@ -12,26 +12,28 @@ export interface CommentInput {
   foreign: string[]
   /** 沒有評測時為 null */
   result: JudgeResult | null
+  /** action 為 closed 時，用來說明是「還沒開始」還是「已結束」 */
+  eventState?: EventState
   runUrl?: string
 }
 
 const TITLES: Record<CommentInput['action'], string> = {
   merge: '✅ 通過，已自動合併 🎁',
   reject: '❌ 未通過，PR 已關閉',
-  closed: '🔒 投稿已截止，PR 已關閉',
+  closed: '🔒 目前不開放投稿，PR 已關閉',
   error: '⚠️ judge 發生錯誤',
 }
 
-const FOOTERS: Record<CommentInput['action'], string> = {
+const FOOTERS: Record<Exclude<CommentInput['action'], 'closed'>, string> = {
   merge: '感謝參加！截止後會隨機配對交換，記得 Watch 這個 repo 的 Issues 才收得到通知。',
   reject: '請依上面的說明修正後，再開一個新的 PR（可以沿用同一個分支）。',
-  closed: '這次活動已經停止收件，謝謝你的參與！🎄',
   error: '這不是你的問題，主辦方會盡快處理。',
 }
 
 const num = (n: unknown) => (typeof n === 'number' ? String(n) : '-')
 
-export function renderComment({ action, author, foreign, result, runUrl }: CommentInput): string {
+export function renderComment(input: CommentInput): string {
+  const { action, author, foreign, result, eventState = 'FATAL', runUrl } = input
   const out: string[] = [COMMENT_MARKER, `## 🎄 Judge 結果：${TITLES[action]}`, '']
 
   if (foreign.length) {
@@ -75,7 +77,7 @@ export function renderComment({ action, author, foreign, result, runUrl }: Comme
     out.push('找不到 judge 結果。', '')
   }
 
-  out.push(FOOTERS[action])
+  out.push(action === 'closed' ? closedMessage(eventState) : FOOTERS[action])
   if (runUrl) out.push('', `<sub>[workflow 紀錄](${runUrl})</sub>`)
   return out.join('\n')
 }

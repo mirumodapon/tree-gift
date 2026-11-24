@@ -41,8 +41,8 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           OUT_DIR: out
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          # repo variable；設為 true 才收件，未設定時投稿 PR 會被留言「投稿已截止」並關閉
-          ACCEPT_SUBMISSIONS: ${{ vars.ACCEPT_SUBMISSIONS }}
+          # repo variable：活動狀態，決定是否收件（未定義視為 FATAL，不收件）
+          EVENT_STATE: ${{ vars.EVENT_STATE }}
         run: node packages/tools/src/review.ts
 
       - uses: actions/upload-artifact@v4

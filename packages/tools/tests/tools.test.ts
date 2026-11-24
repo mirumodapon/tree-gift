@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import type { ErrorCode, JudgeResult } from '@gift/judge'
+import { EVENT_POLICIES, parseEventState, type ErrorCode, type JudgeResult } from '@gift/judge'
 import { checkPaths } from '../src/check-paths.ts'
-import { decide, parseAcceptSubmissions, precheck, type DecideInput } from '../src/decide.ts'
+import { decide, precheck, type DecideInput } from '../src/decide.ts'
 import { codeBlock, inlineCode, plain } from '../src/markdown.ts'
 import { pair } from '../src/pair.ts'
 import { COMMENT_MARKER, renderComment } from '../src/render-comment.ts'
@@ -108,10 +108,12 @@ describe('renderComment', () => {
     assert.doesNotMatch(md, /找不到 judge 結果/)
   })
 
-  it('closed 時說明已截止，不顯示找不到結果', () => {
-    const md = renderComment({ action: 'closed', author: 'alice', foreign: [], result: null })
-    assert.match(md, /投稿已截止/)
-    assert.doesNotMatch(md, /找不到 judge 結果/)
+  it('closed 時依活動狀態說明，不顯示找不到結果', () => {
+    const input = { action: 'closed' as const, author: 'alice', foreign: [], result: null }
+    const before = renderComment({ ...input, eventState: 'NOT_STARTED' })
+    assert.match(before, /還沒開始/)
+    assert.doesNotMatch(before, /找不到 judge 結果/)
+    assert.match(renderComment({ ...input, eventState: 'ENDED' }), /停止收件/)
   })
 
   it('error 時說明不是參加者的問題', () => {
@@ -138,7 +140,7 @@ describe('decide', () => {
     errors: [{ code, message: '' }],
   })
   const base: DecideInput = {
-    acceptSubmissions: true,
+    eventState: 'PROGRESS',
     draft: false,
     targetsDefault: true,
     userType: 'User',
@@ -184,28 +186,41 @@ describe('decide', () => {
     assert.equal(decide({ ...base, result: null }).action, 'error')
   })
 
-  it('停止收件時，投稿 PR 不評測直接 closed', () => {
-    const d = precheck({ ...base, acceptSubmissions: false, result: null })
-    assert.equal(d?.action, 'closed')
-    assert.ok(!d?.pass)
-  })
-
-  it('停止收件不影響一般功能性 PR', () => {
-    const paths = { outside: ['rules.ts'], foreign: [] }
-    assert.equal(decide({ ...base, acceptSubmissions: false, paths }).action, 'skip')
-  })
-
-  it('ACCEPT_SUBMISSIONS 只有明確開啟才收件，未設定視為停止收件', () => {
-    for (const v of ['true', 'TRUE', ' 1 ', 'yes', 'on'])
-      assert.equal(parseAcceptSubmissions(v), true)
-    for (const v of [undefined, '', 'false', '0', 'no', 'off', 'maybe']) {
-      assert.equal(parseAcceptSubmissions(v), false)
+  it('只有 PROGRESS / PROGRESS_SYNC 收件', () => {
+    assert.equal(decide({ ...base, eventState: 'PROGRESS' }).action, 'merge')
+    assert.equal(decide({ ...base, eventState: 'PROGRESS_SYNC' }).action, 'merge')
+    for (const eventState of ['NOT_STARTED', 'ENDED', 'FATAL'] as const) {
+      const d = precheck({ ...base, eventState, result: null })
+      assert.equal(d?.action, 'closed')
+      assert.ok(!d?.pass)
     }
+  })
+
+  it('不收件不影響一般功能性 PR', () => {
+    const paths = { outside: ['rules.ts'], foreign: [] }
+    assert.equal(decide({ ...base, eventState: 'FATAL', paths }).action, 'skip')
   })
 
   it('draft、bot、非預設分支 → skip', () => {
     assert.equal(decide({ ...base, draft: true }).action, 'skip')
     assert.equal(decide({ ...base, userType: 'Bot' }).action, 'skip')
     assert.equal(decide({ ...base, targetsDefault: false }).action, 'skip')
+  })
+})
+
+describe('EVENT_STATE', () => {
+  it('五種狀態對應收件與公開', () => {
+    assert.deepEqual(EVENT_POLICIES.NOT_STARTED, { acceptSubmissions: false, publishTrees: false })
+    assert.deepEqual(EVENT_POLICIES.PROGRESS, { acceptSubmissions: true, publishTrees: false })
+    assert.deepEqual(EVENT_POLICIES.PROGRESS_SYNC, { acceptSubmissions: true, publishTrees: true })
+    assert.deepEqual(EVENT_POLICIES.ENDED, { acceptSubmissions: false, publishTrees: true })
+    assert.deepEqual(EVENT_POLICIES.FATAL, { acceptSubmissions: false, publishTrees: false })
+  })
+
+  it('未定義或不認得的值視為 FATAL，大小寫與空白不影響', () => {
+    for (const v of [undefined, '', 'progress-sync', 'OPEN'])
+      assert.equal(parseEventState(v), 'FATAL')
+    assert.equal(parseEventState(' progress_sync '), 'PROGRESS_SYNC')
+    assert.equal(parseEventState('ended'), 'ENDED')
   })
 })

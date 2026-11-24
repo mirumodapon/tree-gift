@@ -10,7 +10,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
-import { REPO_ROOT, writeExchange, type JudgeResult } from '@gift/judge'
+import { currentEvent, REPO_ROOT, writeExchange, type JudgeResult } from '@gift/judge'
 import { pair } from './pair.ts'
 
 const MENTIONS_PER_COMMENT = 40
@@ -26,6 +26,13 @@ const { values } = parseArgs({
 if (!values.seed) {
   console.error('請用 --seed 指定公開的 seed（例如截止時的 commit sha）')
   process.exit(2)
+}
+
+// 還在收件時交換，之後才 merge 的人就不會被配對
+const event = currentEvent()
+if (event.policy.acceptSubmissions) {
+  console.error(`EVENT_STATE=${event.state} 仍在收件中，請先改成 ENDED 或 FATAL 再交換`)
+  process.exit(1)
 }
 
 const results = fs
