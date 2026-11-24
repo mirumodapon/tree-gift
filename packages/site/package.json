@@ -1,0 +1,12 @@
+{
+  "name": "@gift/site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node src/build.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@gift/judge": "workspace:*"
+  }
+}

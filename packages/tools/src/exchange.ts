@@ -10,7 +10,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
-import { REPO_ROOT, type JudgeResult } from '@gift/judge'
+import { writeExchange, type JudgeResult } from '@gift/judge'
 import { pair } from './pair.ts'
 
 const MENTIONS_PER_COMMENT = 40
@@ -36,8 +36,7 @@ const passed = results.filter((r) => r.ok).map((r) => r.user)
 const failed = results.filter((r) => !r.ok).map((r) => r.user)
 
 const pairs = pair(passed, values.seed)
-const exchange = { seed: values.seed, createdAt: new Date().toISOString(), pairs }
-fs.writeFileSync(path.join(REPO_ROOT, 'exchange.json'), JSON.stringify(exchange, null, 2) + '\n')
+writeExchange({ seed: values.seed, createdAt: new Date().toISOString(), pairs })
 
 const site = values['site-url'].replace(/\/$/, '')
 const giftLink = (user: string) => (site ? `[打開禮物](${site}/u/${user}.html)` : '')

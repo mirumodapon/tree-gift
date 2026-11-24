@@ -189,6 +189,12 @@ importers:
         specifier: 1.4.0
         version: 1.4.0
 
+  packages/site:
+    dependencies:
+      '@gift/judge':
+        specifier: workspace:*
+        version: link:../judge
+
   packages/tools:
     dependencies:
       '@gift/judge':

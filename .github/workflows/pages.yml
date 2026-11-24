@@ -38,7 +38,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: node packages/tools/src/judge-all.ts --out out/results
-      - run: node packages/tools/src/build-site.ts --results out/results --out _site
+      - run: node packages/site/src/build.ts --results out/results --out _site
       - uses: actions/upload-pages-artifact@v4
         with:
           path: _site

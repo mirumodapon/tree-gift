@@ -1,5 +1,5 @@
 // 產生靜態展示頁（GitHub Pages）。
-// 用法：node packages/tools/src/build-site.ts [--results out/results] [--out _site]
+// 用法：pnpm site [--results out/results] [--out _site]
 //
 // - index.html     所有通過 judge 的聖誕樹
 // - u/<user>.html  交換後：「你收到了 @xxx 的聖誕樹」
@@ -8,13 +8,13 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
-import { ansi, loadRules, LOGIN_RE, REPO_ROOT, type JudgeResult } from '@gift/judge'
-import type { Pair } from './pair.ts'
+import { ansi, loadRules, readExchange, REPO_ROOT, type JudgeResult } from '@gift/judge'
 
 const { values } = parseArgs({
   options: {
-    results: { type: 'string', default: 'out/results' },
-    out: { type: 'string', default: '_site' },
+    // 預設以 repo 根目錄為基準，從哪裡執行都一樣
+    results: { type: 'string', default: path.join(REPO_ROOT, 'out/results') },
+    out: { type: 'string', default: path.join(REPO_ROOT, '_site') },
   },
 })
 
@@ -30,12 +30,7 @@ const results = fs
   .toSorted((a, b) => a.user.localeCompare(b.user))
 const byUser = new Map(results.map((r) => [r.user, r]))
 
-const exchangeFile = path.join(REPO_ROOT, 'exchange.json')
-const pairs: Pair[] = fs.existsSync(exchangeFile)
-  ? (JSON.parse(fs.readFileSync(exchangeFile, 'utf8')) as { pairs: Pair[] }).pairs.filter(
-      (p) => LOGIN_RE.test(p.from) && LOGIN_RE.test(p.to),
-    )
-  : []
+const pairs = readExchange()?.pairs ?? []
 const giftTo = new Map(pairs.map((p) => [p.from, p.to]))
 const giftFrom = new Map(pairs.map((p) => [p.to, p.from]))
 

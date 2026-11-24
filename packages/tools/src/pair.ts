@@ -1,11 +1,5 @@
 import { createHash } from 'node:crypto'
-
-export interface Pair {
-  /** 送出樹的人（作者） */
-  from: string
-  /** 收到樹的人 */
-  to: string
-}
+import type { Pair } from '@gift/judge'
 
 /** 由 seed 決定的亂數：sha256(seed:counter) 取前 48 bits。同一個 seed 永遠得到同一組結果。 */
 function seededRandom(seed: string): () => number {

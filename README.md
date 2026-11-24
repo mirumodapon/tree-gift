@@ -72,8 +72,9 @@ pnpm judge submissions/<你的 ID>
 
 ```
 packages/
-  judge/   沙箱執行與輸出檢查（Docker）
-  tools/   PR 留言、配對、展示頁
+  judge/   沙箱執行與輸出檢查（Docker），以及 exchange.json 的格式
+  tools/   PR 自動審查、配對、評測全部投稿
+  site/    展示頁（GitHub Pages）
 rules.ts   所有規則與語言設定
 ```
 
@@ -137,6 +138,7 @@ node packages/tools/src/exchange.ts --seed <seed>
 ### 開發
 
 ```sh
+pnpm site    # 產生展示頁到 _site/（需先跑 node packages/tools/src/judge-all.ts）
 pnpm check   # oxlint + oxfmt + tsc
 pnpm test    # 工具單元測試 + judge 沙箱測試（需要 Docker）
 pnpm fmt     # 格式化
