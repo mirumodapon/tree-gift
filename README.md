@@ -100,9 +100,14 @@ rules.ts   所有規則與語言設定
 ### 設定 repo
 
 1. **Settings → Pages**：Source 選 GitHub Actions
-2. **Settings → Branches**：保護 `main`，要求 `Judge` check 通過才能 merge
-3. （選填）**Settings → Variables**：設定 `SITE_URL` 覆寫展示頁網址
-4. 如果 `main` 禁止直接 push，請允許 GitHub Actions 推送，或改用 PR 合併 `exchange.json`
+2. **Settings → Actions → General → Fork pull request workflows**：
+   預設第一次貢獻的人開 PR 時，workflow 要等維護者按「Approve and run」才會跑。
+   參加者大多是第一次貢獻，人多時建議改成較寬鬆的選項（安全邊界在 Docker 沙箱與唯讀 token，不在這個核准）
+3. **Settings → Branches**：保護 `main`，要求 `Judge` check 通過才能 merge。
+   主辦方修改 `packages/`、`rules.ts` 等的 PR 沒有自己的投稿資料夾，`Judge` 一定會失敗（`no_folder`），
+   這類 PR 由管理員略過保護規則合併，品質由 `CI` workflow 把關
+4. （選填）**Settings → Variables**：設定 `SITE_URL` 覆寫展示頁網址
+5. 如果 `main` 禁止直接 push，請允許 GitHub Actions 推送，或改用 PR 合併 `exchange.json`
 
 ### 交換
 
