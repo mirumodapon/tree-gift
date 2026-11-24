@@ -74,27 +74,27 @@ pnpm judge <你的 ID>        # 評測 submissions/<你的 ID>/
 packages/
   judge/   沙箱執行與輸出檢查（Docker），以及 exchange.json 的格式
   tools/   PR 自動審查、配對、評測全部投稿
-  site/    展示頁（GitHub Pages）
+  site/    活動網站（VitePress）：首頁、參加方式、作品牆、禮物頁
 rules.ts   所有規則與語言設定
 ```
 
-| Workflow       | 觸發                | 做什麼                                                |
-| -------------- | ------------------- | ----------------------------------------------------- |
-| `review.yml`   | PR                  | 分類 PR；投稿 PR 在沙箱中評測，通過就 merge、否則關閉 |
-| `pages.yml`    | push 到 main / 手動 | 重新評測所有投稿，部署展示頁（自動 merge 後也會觸發） |
-| `exchange.yml` | 手動                | 重新評測 → 配對 → commit `exchange.json` → 開公告     |
-| `ci.yml`       | 改到 judge 或工具時 | lint、format、typecheck、測試                         |
+| Workflow       | 觸發                | 做什麼                                                                               |
+| -------------- | ------------------- | ------------------------------------------------------------------------------------ |
+| `review.yml`   | PR                  | 分類 PR；投稿 PR 在沙箱中評測，通過就 merge、否則關閉                                |
+| `pages.yml`    | push 到 main / 手動 | 建置並部署活動網站；依 `EVENT_STATE` 決定是否評測並公開作品（自動 merge 後也會觸發） |
+| `exchange.yml` | 手動                | 重新評測 → 配對 → commit `exchange.json` → 開公告                                    |
+| `ci.yml`       | 改到 judge 或工具時 | lint、format、typecheck、測試                                                        |
 
 ### PR 怎麼處理
 
-| PR 的變更                                               | 處理                                                  |
-| ------------------------------------------------------- | ----------------------------------------------------- |
-| 停止收件時（`ACCEPT_SUBMISSIONS` 不是 `true`）的投稿 PR | 不評測，留言「投稿已截止」並關閉                      |
-| 只改 `submissions/<作者>/`                              | 評測：通過 → 留言並 squash merge；未通過 → 留言並關閉 |
-| 改到別人的 `submissions/<其他人>/`                      | 不評測，留言並關閉                                    |
-| 改到 `submissions/` 以外的任何檔案（含混合）            | 一般功能性 PR：不評測、不留言，等 maintainer review   |
-| draft、bot、目標不是預設分支                            | 不處理                                                |
-| judge 本身出錯（例如 Docker 失敗）                      | 留言，不 merge 也不關閉，等主辦方處理                 |
+| PR 的變更                                    | 處理                                                  |
+| -------------------------------------------- | ----------------------------------------------------- |
+| 不收件時（見下方 `EVENT_STATE`）的投稿 PR    | 不評測，留言說明活動尚未開始或已結束，並關閉          |
+| 只改 `submissions/<作者>/`                   | 評測：通過 → 留言並 squash merge；未通過 → 留言並關閉 |
+| 改到別人的 `submissions/<其他人>/`           | 不評測，留言並關閉                                    |
+| 改到 `submissions/` 以外的任何檔案（含混合） | 一般功能性 PR：不評測、不留言，等 maintainer review   |
+| draft、bot、目標不是預設分支                 | 不處理                                                |
+| judge 本身出錯（例如 Docker 失敗）           | 留言，不 merge 也不關閉，等主辦方處理                 |
 
 ### 沙箱
 
@@ -120,15 +120,32 @@ rules.ts   所有規則與語言設定
    - **不要**開「Require approvals」：自動 merge 用的是 `GITHUB_TOKEN`，要求 review 會讓它無法合併
    - **不要**開「Require branches to be up to date」：投稿 PR 之間互不衝突，開了反而會卡住
 3. **Settings → Secrets and variables → Actions → Variables**：
-   - `ACCEPT_SUBMISSIONS`：是否接受投稿。**設為 `true` 才收件**；未設定或其他值都視為停止收件，
-     投稿 PR 不會評測，會留言「投稿已截止」並關閉（一般功能性 PR 不受影響）。開放投稿前記得設定！
-   - `SITE_URL`（選填）：覆寫展示頁網址
+   - `EVENT_STATE`：活動狀態，見下方「活動狀態」
+   - `SITE_URL`（選填）：自訂網域時設定，交換公告裡「打開禮物」的連結會用它
 4. 如果 `main` 禁止直接 push，請允許 GitHub Actions 推送，或改用 PR 合併 `exchange.json`
+
+### 活動狀態
+
+repo variable `EVENT_STATE` 決定是否收件、是否把聖誕樹公開到網站上：
+
+| `EVENT_STATE`   | 意義                 | 收件 | 公開作品 |
+| --------------- | -------------------- | ---- | -------- |
+| `NOT_STARTED`   | 尚未開始             | ✗    | ✗        |
+| `PROGRESS`      | 進行中，作品保密     | ✓    | ✗        |
+| `PROGRESS_SYNC` | 進行中，作品即時公開 | ✓    | ✓        |
+| `ENDED`         | 已結束，公開作品     | ✗    | ✓        |
+| `FATAL`         | 已結束，不公開作品   | ✗    | ✗        |
+
+- **未定義或打錯字一律視為 `FATAL`**（不收件、不公開），新建的 repo 要先設定才會開始收件
+- 不公開時，網站 build 完全不讀取作品，產出的檔案裡不會有任何作品內容
+- **修改 `EVENT_STATE` 不會自動更新網站**，改完請到 **Actions → Pages → Run workflow** 重新部署
+
+典型流程：`NOT_STARTED` → 開放投稿 `PROGRESS`（或 `PROGRESS_SYNC`）→ 截止 `ENDED` → 執行 Exchange workflow（完成後會自動重新部署網站）
 
 ### 交換
 
-截止時先把 repo variable `ACCEPT_SUBMISSIONS` 改成 `false`（或刪除）停止收件，再到 **Actions → Exchange → Run workflow**，輸入事先公告的 seed（例如截止後第一個比特幣區塊的 hash，或直播抽籤的結果）。
-配對方式是用 seed 洗牌後排成一個環，每個人送給下一位，保證不會抽到自己。任何人都能用同一個 seed 重算驗證：
+截止時先把 `EVENT_STATE` 改成 `ENDED`（或 `FATAL`）停止收件，再到 **Actions → Exchange → Run workflow**，輸入事先公告的 seed（例如截止後第一個比特幣區塊的 hash，或直播抽籤的結果）。
+（還在收件中時，交換會被拒絕。）配對方式是用 seed 洗牌後排成一個環，每個人送給下一位，保證不會抽到自己。任何人都能用同一個 seed 重算驗證：
 
 ```sh
 node packages/tools/src/judge-all.ts
@@ -138,7 +155,8 @@ node packages/tools/src/exchange.ts --seed <seed>
 ### 開發
 
 ```sh
-pnpm site    # 評測所有投稿並產生展示頁到 _site/
+pnpm site:dev  # 本機開發活動網站（作品要公開才看得到：EVENT_STATE=ENDED pnpm site:dev）
+pnpm site      # 評測所有投稿並 build 網站到 _site/
 pnpm check   # oxlint + oxfmt + tsc
 pnpm test    # 工具單元測試 + judge 沙箱測試（需要 Docker）
 pnpm fmt     # 格式化
