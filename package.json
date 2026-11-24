@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "judge": "node packages/judge/src/cli.ts",
+    "play": "node packages/judge/src/play.ts",
     "site": "node packages/tools/src/judge-all.ts && pnpm -F @gift/site build",
     "site:dev": "pnpm -F @gift/site dev",
     "test": "pnpm -r test",

@@ -7,17 +7,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
 import { judge } from './judge.ts'
-import { loadRules, REPO_ROOT } from './rules.ts'
-
-/** 參數是存在的資料夾就直接用，否則當成 GitHub ID 對應到 submissions/<id>/。 */
-function resolveDir(arg: string): string {
-  if (fs.statSync(arg, { throwIfNoEntry: false })?.isDirectory()) return arg
-  const sub = path.join(REPO_ROOT, 'submissions', arg)
-  if (fs.statSync(sub, { throwIfNoEntry: false })?.isDirectory()) return sub
-  console.error(`找不到資料夾：${path.resolve(arg)}`)
-  console.error(`也找不到投稿：${path.relative(process.cwd(), sub) || sub}`)
-  process.exit(2)
-}
+import { loadRules, resolveDir } from './rules.ts'
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,

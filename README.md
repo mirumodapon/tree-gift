@@ -65,6 +65,7 @@ submissions/
 
 ```sh
 pnpm install
+pnpm play <你的 ID>         # 在沙箱中執行，直接在終端機看到你的樹（動畫會即時播放，不評測）
 pnpm judge <你的 ID>        # 評測 submissions/<你的 ID>/
 ```
 

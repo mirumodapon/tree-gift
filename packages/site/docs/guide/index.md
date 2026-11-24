@@ -65,7 +65,8 @@ submissions/
 
 ```sh
 pnpm install
-pnpm judge <你的 GitHub ID>
+pnpm play <你的 GitHub ID>   # 在沙箱中執行，直接看到你的樹（動畫會即時播放）
+pnpm judge <你的 GitHub ID>  # 評測，結果和線上相同
 ```
 
 會印出你的樹和評測結果，通過會顯示 `✅ PASS`。

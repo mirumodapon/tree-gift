@@ -195,6 +195,40 @@ export class Sandbox {
     })
   }
 
+  /**
+   * 執行指令並把輸出直接接到目前的終端機（pnpm play 用，不檢查輸出）。
+   * stdout 是終端機時在 cols × rows 的 pty 中執行，stderr 會一起顯示；
+   * timeoutSec 秒後停止程式。
+   */
+  attach(
+    cmd: string,
+    timeoutSec: number,
+    tty: { cols: number; rows: number },
+  ): Promise<{ code: number | null; timedOut: boolean }> {
+    const isTty = process.stdout.isTTY === true
+    const wrapped = isTty
+      ? `stty cols ${tty.cols} rows ${tty.rows} 2>/dev/null; (${cmd}); ec=$?; kill -9 -1 2>/dev/null; exit $ec`
+      : `(${cmd}); ec=$?; kill -9 -1 2>/dev/null; exit $ec`
+    return new Promise((resolve) => {
+      const p = spawn(
+        'docker',
+        ['exec', ...(isTty ? ['-t'] : []), this.name, 'sh', '-c', wrapped],
+        {
+          stdio: ['ignore', 'inherit', 'inherit'],
+        },
+      )
+      let timedOut = false
+      const timer = setTimeout(() => {
+        timedOut = true
+        this.stopProcesses()
+      }, timeoutSec * 1000)
+      p.on('close', (code) => {
+        clearTimeout(timer)
+        resolve({ code, timedOut })
+      })
+    })
+  }
+
   /** 停止 container 裡除了 PID 1 以外的所有程序 */
   stopProcesses(): void {
     spawnSync('docker', ['exec', this.name, 'sh', '-c', 'kill -9 -1'], { stdio: 'ignore' })

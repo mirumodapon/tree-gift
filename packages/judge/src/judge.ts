@@ -6,13 +6,13 @@ import { replay, toAsciicast, type CastEvent } from './terminal.ts'
 import type { ErrorCode, JudgeResult, Rules } from './types.ts'
 
 export const LOGIN_RE = /^[A-Za-z0-9][A-Za-z0-9-]{0,38}$/
-type Fail = (code: ErrorCode, message: string) => void
+export type Fail = (code: ErrorCode, message: string) => void
 
 /**
  * 投稿格式：submissions/<user>/tree.<ext> 為進入點，其他檔案（模組、標頭檔、資料）放在同一層。
  * 回傳進入點檔名，格式不符時回傳 null。
  */
-function findEntry(dir: string, rules: Rules, fail: Fail): string | null {
+export function findEntry(dir: string, rules: Rules, fail: Fail): string | null {
   const entries: string[] = []
   const bad: string[] = []
   let files = 0
