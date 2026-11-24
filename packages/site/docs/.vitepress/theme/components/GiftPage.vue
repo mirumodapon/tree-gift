@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { IconGift } from '@tabler/icons-vue'
+import { IconArrowRight, IconGift } from '@tabler/icons-vue'
 import { computed } from 'vue'
 import { withBase } from 'vitepress'
 import { data } from '../../gift.data.ts'
@@ -34,11 +34,11 @@ const gift = computed(() => data.trees.find((t) => t.giftTo === props.user) ?? n
         font-size="16px"
       />
       <pre v-else class="gift-term large" v-html="gift.html" />
-      <details>
-        <summary>看看原始碼（{{ gift.sourceFile }}）</summary>
-        <pre class="source"><code>{{ gift.source }}</code></pre>
-        <p v-if="gift.folderUrl"><a :href="gift.folderUrl">在 GitHub 上看完整的投稿資料夾 →</a></p>
-      </details>
+      <p class="more">
+        <a :href="withBase(`/trees/${gift.user}.html`)">
+          看完整作品、原始碼與作者的話 <IconArrowRight :size="16" />
+        </a>
+      </p>
     </template>
     <template v-else>
       <h1>找不到這份禮物</h1>
@@ -88,23 +88,13 @@ h1 {
   overflow: hidden;
 }
 
-details {
-  margin-top: 24px;
+.more {
+  margin-top: 20px;
 }
 
-summary {
-  cursor: pointer;
-  color: var(--vp-c-text-2);
-}
-
-.source {
-  margin-top: 12px;
-  padding: 16px;
-  overflow-x: auto;
-  background: var(--vp-c-bg-soft);
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 8px;
-  font-size: 14px;
-  line-height: 1.5;
+.more a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 </style>

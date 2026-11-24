@@ -20,6 +20,13 @@ export default defineConfig({
   // 動畫作品的 /casts/<user>.cast（不公開作品時不會產生）
   vite: { plugins: [castsDevServer()] },
   buildEnd: (site) => writeCasts(site.outDir),
+  // 動態路由的頁面標題
+  transformPageData(page) {
+    const user = page.params?.user
+    if (typeof user !== 'string') return
+    if (page.relativePath.startsWith('trees/')) page.title = `@${user} 的聖誕樹`
+    if (page.relativePath.startsWith('gifts/')) page.title = `@${user} 的聖誕禮物`
+  },
 
   themeConfig: {
     logo: { src: '/favicon.svg', alt: '' },

@@ -29,8 +29,10 @@ submissions/
     tree.py      ← 進入點（必要）
     star.py      ← 其他檔案（選填）
     trunk.txt
-    README.md    ← 介紹你的作品（選填）
+    README.md    ← 介紹你的作品（選填），會顯示在網站的作品頁
 ```
+
+作品公開後，每個人在網站上都有自己的作品頁，會顯示完整的作品、所有原始碼，以及你的 `README.md`（支援 Markdown，但不支援 HTML；圖片需使用 https 網址）。
 
 可以參考 repo 裡 `examples/` 資料夾的各語言範例，支援的語言請見[語言與多檔案](./languages)。
 

@@ -7,6 +7,39 @@ import { currentEvent, LOGIN_RE, REPO_ROOT, type JudgeResult } from '@gift/judge
 
 export const RESULTS_DIR = process.env.GIFT_RESULTS_DIR ?? path.join(REPO_ROOT, 'out/results')
 
+export interface SourceFile {
+  name: string
+  content: string
+  /** 是否為進入點 tree.<ext> */
+  entry: boolean
+}
+
+/** 投稿資料夾裡的文字檔（README.md 另外處理；不是合法 UTF-8 的檔案略過） */
+export function submissionFiles(user: string, language: string): SourceFile[] {
+  const dir = path.join(REPO_ROOT, 'submissions', user)
+  if (!fs.existsSync(dir)) return []
+  const entry = `tree.${language}`
+  return fs
+    .readdirSync(dir, { withFileTypes: true })
+    .filter((d) => d.isFile() && d.name !== 'README.md')
+    .flatMap((d) => {
+      try {
+        const content = new TextDecoder('utf-8', { fatal: true }).decode(
+          fs.readFileSync(path.join(dir, d.name)),
+        )
+        return [{ name: d.name, content, entry: d.name === entry }]
+      } catch {
+        return []
+      }
+    })
+    .toSorted((a, b) => Number(b.entry) - Number(a.entry) || a.name.localeCompare(b.name))
+}
+
+export function submissionReadme(user: string): string | null {
+  const file = path.join(REPO_ROOT, 'submissions', user, 'README.md')
+  return fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : null
+}
+
 /** 通過評測的作品；不公開時回傳空陣列 */
 export function publishedResults(): JudgeResult[] {
   if (!currentEvent().policy.publishTrees) return []

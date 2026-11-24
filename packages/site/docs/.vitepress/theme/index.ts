@@ -6,6 +6,7 @@ import EventStatus from './components/EventStatus.vue'
 import GiftPage from './components/GiftPage.vue'
 import LanguageTable from './components/LanguageTable.vue'
 import TreeGallery from './components/TreeGallery.vue'
+import TreePage from './components/TreePage.vue'
 import './style.css'
 
 export default {
@@ -14,6 +15,7 @@ export default {
   Layout: () => h(DefaultTheme.Layout, null, { 'home-hero-info-after': () => h(EventStatus) }),
   enhanceApp({ app }) {
     app.component('TreeGallery', TreeGallery)
+    app.component('TreePage', TreePage)
     app.component('GiftPage', GiftPage)
     app.component('LanguageTable', LanguageTable)
     // 讓 markdown 也能直接用的 Tabler icon

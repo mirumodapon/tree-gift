@@ -25,9 +25,6 @@ export interface Tree {
   animation: { duration: number; truncated: boolean; posterTime: number } | null
   cols: number
   rows: number
-  /** 進入點 tree.<ext> 的原始碼 */
-  source: string
-  sourceFile: string
   /** GitHub 上的投稿資料夾（設定了 GITHUB_REPOSITORY 才有） */
   folderUrl: string | null
   /** 交換後：送給誰 */
@@ -88,8 +85,6 @@ function loadTrees(repo: string | null): { trees: Tree[]; exchanged: boolean } {
   const giftFrom = new Map(pairs.map((p) => [p.to, p.from]))
 
   const trees = publishedResults().map((r): Tree => {
-    const sourceFile = `tree.${r.language}`
-    const file = path.join(SUBMISSIONS, r.user, sourceFile)
     const a = r.animation
     return {
       user: r.user,
@@ -100,8 +95,6 @@ function loadTrees(repo: string | null): { trees: Tree[]; exchanged: boolean } {
         : null,
       cols: r.stats.cols ?? 0,
       rows: r.stats.rows ?? 0,
-      source: fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '',
-      sourceFile,
       folderUrl: repo ? `https://github.com/${repo}/tree/main/submissions/${r.user}` : null,
       giftTo: giftTo.get(r.user) ?? null,
       giftFrom: giftFrom.get(r.user) ?? null,

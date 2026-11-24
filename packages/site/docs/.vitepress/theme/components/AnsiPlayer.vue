@@ -16,6 +16,8 @@ const props = defineProps<{
   autoPlay?: boolean
   /** 字級，與靜態作品一致 */
   fontSize?: string
+  /** 預覽模式（作品牆卡片）：不顯示控制列、不攔截點擊，由外部呼叫 play / pause */
+  preview?: boolean
 }>()
 
 const el = ref<HTMLElement>()
@@ -34,17 +36,22 @@ onMounted(async () => {
     // 固定字級、不縮放，和靜態作品的終端機一樣大小；太寬時可橫向捲動
     fit: false,
     terminalFontSize: props.fontSize ?? '14px',
-    controls: 'auto',
+    controls: props.preview ? false : 'auto',
     terminalFontFamily: 'var(--vp-font-family-mono)',
   })
   ready.value = true
 })
 
 onBeforeUnmount(() => player?.dispose())
+
+defineExpose({
+  play: () => void player?.play(),
+  pause: () => void player?.pause(),
+})
 </script>
 
 <template>
-  <div class="ansi-player">
+  <div class="ansi-player" :class="{ preview }">
     <pre v-if="!ready" class="gift-term" v-html="fallbackHtml" />
     <div ref="el" />
   </div>
@@ -58,6 +65,15 @@ onBeforeUnmount(() => player?.dispose())
 
 .ansi-player > div {
   padding: 16px;
+}
+
+/* 預覽模式：點擊穿透到卡片連結，也不顯示播放按鈕 */
+.preview {
+  pointer-events: none;
+}
+
+.preview :deep(.ap-overlay-start) {
+  display: none;
 }
 
 /* 播放器配色與靜態作品的終端機一致 */
